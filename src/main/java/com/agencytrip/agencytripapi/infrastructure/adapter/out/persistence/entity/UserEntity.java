@@ -1,0 +1,3 @@
+package com.agencytrip.agencytripapi.infrastructure.adapter.out.persistence.entity;
+import jakarta.persistence.*; import lombok.*; import java.time.LocalDateTime;
+@Entity @Table(name="usuarios") @Getter @Setter @NoArgsConstructor public class UserEntity { @Id @GeneratedValue(strategy=GenerationType.IDENTITY) @Column(name="id_usuario") private Integer idUsuario; private String nombre; private String apellido; private String correo; private String password; @Column(name="id_rol") private Integer idRol; @Column(name="fecha_registro") private LocalDateTime fechaRegistro; private boolean estado; @ManyToOne(fetch=FetchType.LAZY) @JoinColumn(name="id_rol",insertable=false,updatable=false) private RoleEntity rol; }

@@ -1,0 +1,3 @@
+package com.agencytrip.agencytripapi.infrastructure.adapter.in.web;
+import com.agencytrip.agencytripapi.application.dto.Requests; import com.agencytrip.agencytripapi.application.service.UserService; import com.agencytrip.agencytripapi.domain.model.User; import jakarta.validation.Valid; import java.util.*; import org.springframework.web.bind.annotation.*;
+@RestController @RequestMapping("/api/Registro") public class RegistrationController {private final UserService service;public RegistrationController(UserService s){service=s;}@PostMapping public Map<String,Object> register(@Valid @RequestBody Requests.Register r){User u=service.register(r);return Map.of("mensaje","Usuario registrado correctamente.","usuario",ApiResponses.userAuth(u,"CLIENTE"));}}

@@ -1,0 +1,6 @@
+package com.agencytrip.agencytripapi.domain.model;
+import java.math.BigDecimal; import java.time.LocalDateTime;
+public class Reservation {
+    private Integer idReserva; private Integer idUsuario; private Integer idPaquete; private LocalDateTime fechaReserva; private int cantidadPersonas; private BigDecimal precioTotal; private String estado; private User usuario; private PackageTrip paquete;
+    public Integer getIdReserva(){return idReserva;} public void setIdReserva(Integer v){idReserva=v;} public Integer getIdUsuario(){return idUsuario;} public void setIdUsuario(Integer v){idUsuario=v;} public Integer getIdPaquete(){return idPaquete;} public void setIdPaquete(Integer v){idPaquete=v;} public LocalDateTime getFechaReserva(){return fechaReserva;} public void setFechaReserva(LocalDateTime v){fechaReserva=v;} public int getCantidadPersonas(){return cantidadPersonas;} public void setCantidadPersonas(int v){cantidadPersonas=v;} public BigDecimal getPrecioTotal(){return precioTotal;} public void setPrecioTotal(BigDecimal v){precioTotal=v;} public String getEstado(){return estado;} public void setEstado(String v){estado=v;} public User getUsuario(){return usuario;} public void setUsuario(User v){usuario=v;} public PackageTrip getPaquete(){return paquete;} public void setPaquete(PackageTrip v){paquete=v;}
+}

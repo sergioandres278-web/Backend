@@ -1,0 +1,3 @@
+package com.agencytrip.agencytripapi.infrastructure.adapter.out.persistence.entity;
+import jakarta.persistence.*; import lombok.*; import java.math.BigDecimal; import java.time.LocalDateTime;
+@Entity @Table(name="pagos") @Getter @Setter @NoArgsConstructor public class PaymentEntity { @Id @GeneratedValue(strategy=GenerationType.IDENTITY) @Column(name="id_pago") private Integer idPago; @Column(name="id_reserva") private Integer idReserva; @Column(name="fecha_pago") private LocalDateTime fechaPago; private BigDecimal monto; @Column(name="metodo_pago") private String metodoPago; private String estado; @ManyToOne(fetch=FetchType.LAZY) @JoinColumn(name="id_reserva",insertable=false,updatable=false) private ReservationEntity reserva; }

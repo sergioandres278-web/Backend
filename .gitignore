@@ -1,0 +1,21 @@
+# Maven and Java build output
+target/
+*.class
+*.log
+
+# IDE configuration
+.idea/
+.vscode/
+*.iml
+
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+application-local.properties
+application-local.yml
+
+# Tooling and operating-system files
+node_modules/
+.DS_Store
+Thumbs.db

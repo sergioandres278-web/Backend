@@ -1,0 +1,3 @@
+package com.agencytrip.agencytripapi.infrastructure.adapter.in.web;
+import com.agencytrip.agencytripapi.application.service.UserService; import java.util.*; import org.springframework.security.access.prepost.PreAuthorize; import org.springframework.web.bind.annotation.*;
+@RestController public class AdminController {private final UserService users;public AdminController(UserService u){users=u;}@GetMapping("/api/Roles")@PreAuthorize("hasRole('ADMINISTRADOR')")public Object roles(){return users.roles();}@GetMapping("/api/Admin/panel")@PreAuthorize("hasRole('ADMINISTRADOR')")public Object panel(){return Map.of("mensaje","Acceso autorizado al panel de administrador.","rol","ADMINISTRADOR");}}

@@ -1,0 +1,12 @@
+package com.agencytrip.agencytripapi.application.service;
+import com.agencytrip.agencytripapi.application.dto.Requests; import com.agencytrip.agencytripapi.application.port.out.*; import com.agencytrip.agencytripapi.domain.model.*; import com.agencytrip.agencytripapi.domain.port.out.TravelRepositoryPort; import java.time.LocalDateTime; import java.util.*; import org.springframework.http.HttpStatus;
+public class UserService {
+ private final TravelRepositoryPort repo; private final PasswordHasherPort hasher; private final TokenPort tokens;
+ public UserService(TravelRepositoryPort repo,PasswordHasherPort hasher,TokenPort tokens){this.repo=repo;this.hasher=hasher;this.tokens=tokens;}
+ public User register(Requests.Register r){if(repo.emailExists(r.correo(),null))throw CatalogService.bad("El correo ya está registrado."); User u=new User();u.setNombre(r.nombre());u.setApellido(r.apellido());u.setCorreo(r.correo());u.setPassword(hasher.hash(r.password()));u.setIdRol(2);u.setFechaRegistro(LocalDateTime.now());u.setEstado(true);return repo.saveUser(u);}
+ public LoginResult login(Requests.Login r){User u=repo.findUserByEmail(r.correo()).filter(User::isEstado).orElseThrow(()->new BusinessException(HttpStatus.UNAUTHORIZED,"Correo o contraseña incorrectos."));if(!hasher.matches(r.password(),u.getPassword()))throw new BusinessException(HttpStatus.UNAUTHORIZED,"Correo o contraseña incorrectos.");String role=u.getRol()==null?"CLIENTE":u.getRol().getNombre();return new LoginResult(tokens.create(u.getIdUsuario(),u.getNombre(),u.getCorreo(),role),u,role);}
+ public List<User> users(){return repo.findActiveUsers();} public List<Role> roles(){return repo.findRoles();}
+ public User update(int id,Requests.UserUpdate r){User u=repo.findUserById(id).orElseThrow(()->CatalogService.notFound("El usuario no existe."));if(repo.emailExists(r.correo(),id))throw CatalogService.bad("El correo ya está registrado por otro usuario.");Role role=repo.findRole(r.idRol()).orElseThrow(()->CatalogService.bad("El rol no existe."));u.setNombre(r.nombre());u.setApellido(r.apellido());u.setCorreo(r.correo());u.setIdRol(r.idRol());u.setRol(role);return repo.saveUser(u);}
+ public void disable(int id){User u=repo.findUserById(id).orElseThrow(()->CatalogService.notFound("El usuario no existe."));if(!u.isEstado())throw CatalogService.bad("El usuario ya está desactivado.");u.setEstado(false);repo.saveUser(u);}
+ public record LoginResult(String token,User user,String role){}
+}

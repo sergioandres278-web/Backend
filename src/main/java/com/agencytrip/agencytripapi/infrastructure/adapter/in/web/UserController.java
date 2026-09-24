@@ -1,0 +1,9 @@
+package com.agencytrip.agencytripapi.infrastructure.adapter.in.web;
+import com.agencytrip.agencytripapi.application.dto.Requests; import com.agencytrip.agencytripapi.application.service.UserService; import com.agencytrip.agencytripapi.domain.model.User; import jakarta.validation.Valid; import java.util.*; import org.springframework.http.*; import org.springframework.security.access.prepost.PreAuthorize; import org.springframework.security.core.annotation.AuthenticationPrincipal; import org.springframework.security.oauth2.jwt.Jwt; import org.springframework.web.bind.annotation.*;
+@RestController @RequestMapping("/api/Usuarios") public class UserController { private final UserService service; public UserController(UserService s){service=s;}
+ @PostMapping("/login") public Map<String,Object> login(@Valid @RequestBody Requests.Login r){var x=service.login(r);return Map.of("mensaje","Inicio de sesión exitoso.","token",x.token(),"usuario",ApiResponses.userAuth(x.user(),x.role()));}
+ @GetMapping("/perfil") public Map<String,Object> profile(@AuthenticationPrincipal Jwt jwt){return Map.of("mensaje","Perfil obtenido correctamente.","usuario",jwt.getSubject(),"correo",jwt.getClaimAsString("email"),"rol",jwt.getClaimAsStringList("roles").getFirst());}
+ @GetMapping @PreAuthorize("hasRole('ADMINISTRADOR')") public List<ApiResponses.UserAdmin> users(){return service.users().stream().map(ApiResponses::userAdmin).toList();}
+ @PutMapping("/{id}") @PreAuthorize("hasRole('ADMINISTRADOR')") public Map<String,Object> update(@PathVariable int id,@Valid @RequestBody Requests.UserUpdate r){User u=service.update(id,r);return Map.of("mensaje","Usuario actualizado correctamente.","usuario",ApiResponses.userAdmin(u));}
+ @DeleteMapping("/{id}") @PreAuthorize("hasRole('ADMINISTRADOR')") public Map<String,String> disable(@PathVariable int id){service.disable(id);return Map.of("mensaje","Usuario desactivado correctamente.");}
+}
