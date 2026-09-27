@@ -6,5 +6,36 @@ interface DestinationJpaRepository extends JpaRepository<DestinationEntity,Integ
 interface HotelJpaRepository extends JpaRepository<HotelEntity,Integer>{List<HotelEntity> findByEstadoTrue();}
 interface TransportJpaRepository extends JpaRepository<TransportEntity,Integer>{List<TransportEntity> findByEstadoTrue();}
 interface PackageJpaRepository extends JpaRepository<PackageEntity,Integer>{@EntityGraph(attributePaths={"destino","transporte","hotel"}) List<PackageEntity> findByEstadoTrue();@EntityGraph(attributePaths={"destino","transporte","hotel"}) Optional<PackageEntity> findById(Integer id);}
-interface ReservationJpaRepository extends JpaRepository<ReservationEntity,Integer>{@EntityGraph(attributePaths={"usuario","paquete","paquete.destino"}) List<ReservationEntity> findAll(); @EntityGraph(attributePaths={"usuario","paquete","paquete.destino"}) List<ReservationEntity> findByIdUsuario(Integer idUsuario);@EntityGraph(attributePaths={"usuario","paquete","paquete.destino"}) Optional<ReservationEntity> findById(Integer id);}
+interface ReservationJpaRepository extends JpaRepository<ReservationEntity,Integer>{
+
+    @EntityGraph(attributePaths={
+        "usuario",
+        "usuario.rol",
+        "paquete",
+        "paquete.destino",
+        "paquete.transporte",
+        "paquete.hotel"
+    })
+    List<ReservationEntity> findAll();
+
+    @EntityGraph(attributePaths={
+        "usuario",
+        "usuario.rol",
+        "paquete",
+        "paquete.destino",
+        "paquete.transporte",
+        "paquete.hotel"
+    })
+    List<ReservationEntity> findByIdUsuario(Integer idUsuario);
+
+    @EntityGraph(attributePaths={
+        "usuario",
+        "usuario.rol",
+        "paquete",
+        "paquete.destino",
+        "paquete.transporte",
+        "paquete.hotel"
+    })
+    Optional<ReservationEntity> findById(Integer id);
+}
 interface PaymentJpaRepository extends JpaRepository<PaymentEntity,Integer>{@EntityGraph(attributePaths={"reserva"}) List<PaymentEntity> findAll(); @EntityGraph(attributePaths={"reserva"}) List<PaymentEntity> findByReservaIdUsuario(Integer idUsuario);@EntityGraph(attributePaths={"reserva"}) Optional<PaymentEntity> findById(Integer id);boolean existsByIdReservaAndEstado(Integer idReserva,String estado);}

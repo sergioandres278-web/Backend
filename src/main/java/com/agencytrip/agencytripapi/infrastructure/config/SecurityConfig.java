@@ -123,10 +123,10 @@ public class SecurityConfig {
 
                         // Registro y login públicos
                         .requestMatchers(
-                                HttpMethod.POST,
-                                "/api/Registro",
-                                "/api/Usuarios/login"
-                        ).permitAll()
+    HttpMethod.POST,
+    "/api/Usuarios/registro",
+    "/api/Usuarios/login"
+).permitAll()
 
                         // Consultas públicas
                         .requestMatchers(
