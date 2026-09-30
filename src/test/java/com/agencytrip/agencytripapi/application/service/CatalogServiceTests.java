@@ -1,6 +1,7 @@
 package com.agencytrip.agencytripapi.application.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -27,5 +28,15 @@ class CatalogServiceTests {
         assertEquals("Colombia", destination.getPais());
         assertEquals("Ciudad amurallada", destination.getDescripcion());
         assertTrue(destination.isEstado());
+    }
+
+    @Test
+    void rejectsHotelCategoriesOutsideTheSupportedRange() {
+        CatalogService service = new CatalogService(mock(TravelRepositoryPort.class));
+
+        BusinessException exception = assertThrows(BusinessException.class,
+                () -> service.createHotel(new Requests.Hotel("Hotel", "Calle 1", "Bogotá", 6, "Prueba")));
+
+        assertEquals("La categoría debe estar entre 1 y 5.", exception.getMessage());
     }
 }
