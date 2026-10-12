@@ -1,14 +1,66 @@
 package com.agencytrip.agencytripapi.infrastructure.adapter.out.persistence;
-import com.agencytrip.agencytripapi.infrastructure.adapter.out.persistence.entity.*; import java.util.*; import org.springframework.data.jpa.repository.*; import org.springframework.data.repository.query.Param;
-interface UserJpaRepository extends JpaRepository<UserEntity,Integer>{@EntityGraph(attributePaths={"rol"}) Optional<UserEntity> findByCorreo(String correo);@EntityGraph(attributePaths={"rol"}) Optional<UserEntity> findById(Integer id);@EntityGraph(attributePaths={"rol"}) List<UserEntity> findByEstadoTrue();boolean existsByCorreo(String correo);boolean existsByCorreoAndIdUsuarioNot(String correo,Integer id);}
-interface RoleJpaRepository extends JpaRepository<RoleEntity,Integer>{}
-interface DestinationJpaRepository extends JpaRepository<DestinationEntity,Integer>{List<DestinationEntity> findByEstadoTrue();}
-interface HotelJpaRepository extends JpaRepository<HotelEntity,Integer>{List<HotelEntity> findByEstadoTrue();}
-interface TransportJpaRepository extends JpaRepository<TransportEntity,Integer>{List<TransportEntity> findByEstadoTrue();}
-interface PackageJpaRepository extends JpaRepository<PackageEntity,Integer>{@EntityGraph(attributePaths={"destino","transporte","hotel"}) List<PackageEntity> findByEstadoTrue();@EntityGraph(attributePaths={"destino","transporte","hotel"}) Optional<PackageEntity> findById(Integer id);}
-interface ReservationJpaRepository extends JpaRepository<ReservationEntity,Integer>{
 
-    @EntityGraph(attributePaths={
+import java.util.List;
+import java.util.Optional;
+
+import org.springframework.data.jpa.repository.EntityGraph;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import com.agencytrip.agencytripapi.infrastructure.adapter.out.persistence.entity.DestinationEntity;
+import com.agencytrip.agencytripapi.infrastructure.adapter.out.persistence.entity.HotelEntity;
+import com.agencytrip.agencytripapi.infrastructure.adapter.out.persistence.entity.PackageEntity;
+import com.agencytrip.agencytripapi.infrastructure.adapter.out.persistence.entity.PaymentEntity;
+import com.agencytrip.agencytripapi.infrastructure.adapter.out.persistence.entity.ReservationEntity;
+import com.agencytrip.agencytripapi.infrastructure.adapter.out.persistence.entity.RoleEntity;
+import com.agencytrip.agencytripapi.infrastructure.adapter.out.persistence.entity.TransportEntity;
+import com.agencytrip.agencytripapi.infrastructure.adapter.out.persistence.entity.UserEntity;
+
+interface UserJpaRepository extends JpaRepository<UserEntity, Integer> {
+
+    @EntityGraph(attributePaths = {"rol"})
+    Optional<UserEntity> findByCorreo(String correo);
+
+    @EntityGraph(attributePaths = {"rol"})
+    Optional<UserEntity> findById(Integer id);
+
+    @EntityGraph(attributePaths = {"rol"})
+    List<UserEntity> findByEstadoTrue();
+
+    boolean existsByCorreo(String correo);
+
+    boolean existsByCorreoAndIdUsuarioNot(String correo, Integer id);
+}
+
+interface RoleJpaRepository extends JpaRepository<RoleEntity, Integer> {
+}
+
+interface DestinationJpaRepository extends JpaRepository<DestinationEntity, Integer> {
+
+    List<DestinationEntity> findByEstadoTrue();
+}
+
+interface HotelJpaRepository extends JpaRepository<HotelEntity, Integer> {
+
+    List<HotelEntity> findByEstadoTrue();
+}
+
+interface TransportJpaRepository extends JpaRepository<TransportEntity, Integer> {
+
+    List<TransportEntity> findByEstadoTrue();
+}
+
+interface PackageJpaRepository extends JpaRepository<PackageEntity, Integer> {
+
+    @EntityGraph(attributePaths = {"destino", "transporte", "hotel"})
+    List<PackageEntity> findByEstadoTrue();
+
+    @EntityGraph(attributePaths = {"destino", "transporte", "hotel"})
+    Optional<PackageEntity> findById(Integer id);
+}
+
+interface ReservationJpaRepository extends JpaRepository<ReservationEntity, Integer> {
+
+    @EntityGraph(attributePaths = {
         "usuario",
         "usuario.rol",
         "paquete",
@@ -18,7 +70,7 @@ interface ReservationJpaRepository extends JpaRepository<ReservationEntity,Integ
     })
     List<ReservationEntity> findAll();
 
-    @EntityGraph(attributePaths={
+    @EntityGraph(attributePaths = {
         "usuario",
         "usuario.rol",
         "paquete",
@@ -28,7 +80,7 @@ interface ReservationJpaRepository extends JpaRepository<ReservationEntity,Integ
     })
     List<ReservationEntity> findByIdUsuario(Integer idUsuario);
 
-    @EntityGraph(attributePaths={
+    @EntityGraph(attributePaths = {
         "usuario",
         "usuario.rol",
         "paquete",
@@ -38,4 +90,41 @@ interface ReservationJpaRepository extends JpaRepository<ReservationEntity,Integ
     })
     Optional<ReservationEntity> findById(Integer id);
 }
-interface PaymentJpaRepository extends JpaRepository<PaymentEntity,Integer>{@EntityGraph(attributePaths={"reserva"}) List<PaymentEntity> findAll(); @EntityGraph(attributePaths={"reserva"}) List<PaymentEntity> findByReservaIdUsuario(Integer idUsuario);@EntityGraph(attributePaths={"reserva"}) Optional<PaymentEntity> findById(Integer id);boolean existsByIdReservaAndEstado(Integer idReserva,String estado);}
+
+interface PaymentJpaRepository extends JpaRepository<PaymentEntity, Integer> {
+
+    @EntityGraph(attributePaths = {
+        "reserva",
+        "reserva.usuario",
+        "reserva.usuario.rol",
+        "reserva.paquete",
+        "reserva.paquete.destino",
+        "reserva.paquete.transporte",
+        "reserva.paquete.hotel"
+    })
+    List<PaymentEntity> findAll();
+
+    @EntityGraph(attributePaths = {
+        "reserva",
+        "reserva.usuario",
+        "reserva.usuario.rol",
+        "reserva.paquete",
+        "reserva.paquete.destino",
+        "reserva.paquete.transporte",
+        "reserva.paquete.hotel"
+    })
+    List<PaymentEntity> findByReservaIdUsuario(Integer idUsuario);
+
+    @EntityGraph(attributePaths = {
+        "reserva",
+        "reserva.usuario",
+        "reserva.usuario.rol",
+        "reserva.paquete",
+        "reserva.paquete.destino",
+        "reserva.paquete.transporte",
+        "reserva.paquete.hotel"
+    })
+    Optional<PaymentEntity> findById(Integer id);
+
+    boolean existsByIdReservaAndEstado(Integer idReserva, String estado);
+}
