@@ -1,0 +1,40 @@
+﻿services:
+  api:
+    build:
+      context: ./agencytrip-api
+    container_name: agencytrip-api
+    restart: unless-stopped
+    environment:
+      SPRING_PROFILES_ACTIVE: dev
+      DB_URL: jdbc:mysql://host.docker.internal:3306/agencia_viajes
+      DB_USERNAME: ${DB_USERNAME:?Debes definir DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD:?Debes definir DB_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET:?Debes definir JWT_SECRET}
+      JWT_ISSUER: ${JWT_ISSUER:-AgencyTripAPI}
+      JWT_AUDIENCE: ${JWT_AUDIENCE:-AgencyTripAngular}
+      PORT: "8080"
+    ports:
+      - "8080:8080"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  chatbot:
+    build:
+      context: ./agencytrip-chatbot-api/agencytrip-chatbot-api
+    container_name: agencytrip-chatbot
+    restart: unless-stopped
+    environment:
+      CHATBOT_CORS_ALLOWED_ORIGIN: http://localhost:4200
+    ports:
+      - "8081:8081"
+
+  frontend:
+    build:
+      context: ./agencia-viajes-frontend
+    container_name: agencytrip-frontend
+    restart: unless-stopped
+    ports:
+      - "4200:80"
+    depends_on:
+      - api
+      - chatbot
