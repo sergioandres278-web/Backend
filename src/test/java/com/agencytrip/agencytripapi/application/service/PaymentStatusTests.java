@@ -54,4 +54,106 @@ class PaymentStatusTests {
         assertEquals("PENDIENTE", reservation.getEstado());
         assertEquals(5, trip.getCupos());
     }
+
+    @Test
+    void doesNotAlterCancelledReservationWhenPaymentIsRejected() {
+        TravelRepositoryPort repository = mock(TravelRepositoryPort.class);
+
+        Payment payment = new Payment();
+        payment.setIdReserva(2);
+        payment.setEstado("PENDIENTE");
+
+        Reservation reservation = new Reservation();
+        reservation.setEstado("CANCELADA");
+
+        when(repository.findPayment(6)).thenReturn(Optional.of(payment));
+        when(repository.findReservation(2)).thenReturn(Optional.of(reservation));
+        when(repository.savePayment(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        new PaymentService(repository).updateStatus(6, new Requests.PaymentStatus("RECHAZADO"));
+
+        assertEquals("RECHAZADO", payment.getEstado());
+        assertEquals("CANCELADA", reservation.getEstado());
+    }
+
+    @Test
+    void rejectsApprovingPaymentForCancelledReservation() {
+        TravelRepositoryPort repository = mock(TravelRepositoryPort.class);
+
+        Payment payment = new Payment();
+        payment.setIdReserva(2);
+        payment.setEstado("PENDIENTE");
+
+        Reservation reservation = new Reservation();
+        reservation.setEstado("CANCELADA");
+
+        when(repository.findPayment(6)).thenReturn(Optional.of(payment));
+        when(repository.hasApprovedPayment(2)).thenReturn(false);
+        when(repository.findReservation(2)).thenReturn(Optional.of(reservation));
+
+        org.junit.jupiter.api.Assertions.assertThrows(
+            BusinessException.class,
+            () -> new PaymentService(repository).updateStatus(6, new Requests.PaymentStatus("APROBADO"))
+        );
+    }
+
+    @Test
+    void rejectsApprovingPaymentWhenPackageIsInactive() {
+        TravelRepositoryPort repository = mock(TravelRepositoryPort.class);
+
+        Payment payment = new Payment();
+        payment.setIdReserva(2);
+        payment.setEstado("PENDIENTE");
+
+        Reservation reservation = new Reservation();
+        reservation.setIdPaquete(4);
+        reservation.setCantidadPersonas(2);
+        reservation.setEstado("PENDIENTE");
+
+        PackageTrip trip = new PackageTrip();
+        trip.setCupos(5);
+        trip.setEstado(false);
+
+        when(repository.findPayment(6)).thenReturn(Optional.of(payment));
+        when(repository.hasApprovedPayment(2)).thenReturn(false);
+        when(repository.findReservation(2)).thenReturn(Optional.of(reservation));
+        when(repository.findPackage(4)).thenReturn(Optional.of(trip));
+
+        org.junit.jupiter.api.Assertions.assertThrows(
+            BusinessException.class,
+            () -> new PaymentService(repository).updateStatus(6, new Requests.PaymentStatus("APROBADO"))
+        );
+    }
+
+    @Test
+    void rejectsApprovingAnAlreadyApprovedPayment() {
+        TravelRepositoryPort repository = mock(TravelRepositoryPort.class);
+
+        Payment payment = new Payment();
+        payment.setIdReserva(2);
+        payment.setEstado("APROBADO");
+
+        when(repository.findPayment(6)).thenReturn(Optional.of(payment));
+
+        org.junit.jupiter.api.Assertions.assertThrows(
+            BusinessException.class,
+            () -> new PaymentService(repository).updateStatus(6, new Requests.PaymentStatus("APROBADO"))
+        );
+    }
+
+    @Test
+    void rejectsRejectingAnAlreadyRejectedPayment() {
+        TravelRepositoryPort repository = mock(TravelRepositoryPort.class);
+
+        Payment payment = new Payment();
+        payment.setIdReserva(2);
+        payment.setEstado("RECHAZADO");
+
+        when(repository.findPayment(6)).thenReturn(Optional.of(payment));
+
+        org.junit.jupiter.api.Assertions.assertThrows(
+            BusinessException.class,
+            () -> new PaymentService(repository).updateStatus(6, new Requests.PaymentStatus("RECHAZADO"))
+        );
+    }
 }

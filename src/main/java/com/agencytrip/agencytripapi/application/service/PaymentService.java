@@ -36,7 +36,8 @@ public class PaymentService {
     ) {
 
         Reservation reservation =
-            repo.findReservation(r.idReserva())
+            repo.findReservationForUpdate(r.idReserva())
+                .or(() -> repo.findReservation(r.idReserva()))
                 .orElseThrow(() ->
                     CatalogService.notFound(
                         "La reserva no existe."
@@ -61,6 +62,17 @@ public class PaymentService {
 
             throw CatalogService.bad(
                 "No se puede realizar el pago de una reserva cancelada."
+            );
+        }
+
+        if (
+            "CONFIRMADA".equalsIgnoreCase(
+                reservation.getEstado()
+            )
+        ) {
+
+            throw CatalogService.bad(
+                "La reserva ya está confirmada."
             );
         }
 
@@ -99,13 +111,20 @@ public class PaymentService {
          * mientras la reserva estaba pendiente.
          */
         PackageTrip paquete =
-            repo.findPackage(
+            repo.findPackageForUpdate(
                 reservation.getIdPaquete()
-            ).orElseThrow(() ->
+            ).or(() -> repo.findPackage(reservation.getIdPaquete()))
+            .orElseThrow(() ->
                 CatalogService.notFound(
                     "El paquete asociado a la reserva no existe."
                 )
             );
+
+        if (!paquete.isEstado()) {
+            throw CatalogService.bad(
+                "El paquete asociado está desactivado."
+            );
+        }
 
         /*
          * Los cupos se validan y descuentan SOLAMENTE
@@ -198,6 +217,26 @@ public class PaymentService {
         String estadoAnterior =
             p.getEstado();
 
+        if (
+            "APROBADO".equals(status) &&
+            "APROBADO".equalsIgnoreCase(estadoAnterior)
+        ) {
+
+            throw CatalogService.bad(
+                "El pago ya está aprobado."
+            );
+        }
+
+        if (
+            "RECHAZADO".equals(status) &&
+            "RECHAZADO".equalsIgnoreCase(estadoAnterior)
+        ) {
+
+            throw CatalogService.bad(
+                "El pago ya está rechazado."
+            );
+        }
+
         /*
          * Si un pago pasa a APROBADO desde otro estado,
          * también debemos consumir los cupos.
@@ -219,22 +258,36 @@ public class PaymentService {
             }
 
             Reservation reservation =
-                repo.findReservation(
+                repo.findReservationForUpdate(
                     p.getIdReserva()
-                ).orElseThrow(() ->
+                ).or(() -> repo.findReservation(p.getIdReserva()))
+                .orElseThrow(() ->
                     CatalogService.notFound(
                         "La reserva asociada al pago no existe."
                     )
                 );
 
+            if ("CANCELADA".equalsIgnoreCase(reservation.getEstado())) {
+                throw CatalogService.bad(
+                    "No se puede aprobar el pago de una reserva cancelada."
+                );
+            }
+
             PackageTrip paquete =
-                repo.findPackage(
+                repo.findPackageForUpdate(
                     reservation.getIdPaquete()
-                ).orElseThrow(() ->
+                ).or(() -> repo.findPackage(reservation.getIdPaquete()))
+                .orElseThrow(() ->
                     CatalogService.notFound(
                         "El paquete asociado a la reserva no existe."
                     )
                 );
+
+            if (!paquete.isEstado()) {
+                throw CatalogService.bad(
+                    "El paquete asociado está desactivado."
+                );
+            }
 
             if (
                 reservation.getCantidadPersonas() >
@@ -259,9 +312,10 @@ public class PaymentService {
         }
 
         Reservation reservation =
-            repo.findReservation(
+            repo.findReservationForUpdate(
                 p.getIdReserva()
-            ).orElse(null);
+            ).or(() -> repo.findReservation(p.getIdReserva()))
+            .orElse(null);
 
         /*
          * Si un pago que estaba APROBADO pasa a RECHAZADO o PENDIENTE,
@@ -279,9 +333,10 @@ public class PaymentService {
             ) {
 
                 PackageTrip paquete =
-                    repo.findPackage(
+                    repo.findPackageForUpdate(
                         reservation.getIdPaquete()
-                    ).orElse(null);
+                    ).or(() -> repo.findPackage(reservation.getIdPaquete()))
+                    .orElse(null);
 
                 if (paquete != null) {
                     paquete.setCupos(
@@ -295,9 +350,9 @@ public class PaymentService {
 
         /*
          * Si el pago es rechazado o queda pendiente,
-         * la reserva vuelve a estado PENDIENTE.
+         * la reserva vuelve a estado PENDIENTE únicamente si no estaba cancelada.
          */
-        if (reservation != null) {
+        if (reservation != null && !"CANCELADA".equalsIgnoreCase(reservation.getEstado())) {
 
             if ("RECHAZADO".equals(status)) {
                 reservation.setEstado("PENDIENTE");

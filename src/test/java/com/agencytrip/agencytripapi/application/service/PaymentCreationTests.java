@@ -91,4 +91,47 @@ class PaymentCreationTests {
             trip.getCupos()
         );
     }
+
+    @Test
+    void rejectsPaymentWhenPackageIsInactive() {
+        TravelRepositoryPort repository = mock(TravelRepositoryPort.class);
+
+        Reservation reservation = new Reservation();
+        reservation.setIdReserva(8);
+        reservation.setIdUsuario(3);
+        reservation.setIdPaquete(4);
+        reservation.setCantidadPersonas(2);
+        reservation.setPrecioTotal(new BigDecimal("50000"));
+
+        PackageTrip trip = new PackageTrip();
+        trip.setIdPaquete(4);
+        trip.setCupos(5);
+        trip.setEstado(false);
+
+        when(repository.findReservation(8)).thenReturn(Optional.of(reservation));
+        when(repository.findPackage(4)).thenReturn(Optional.of(trip));
+        when(repository.hasApprovedPayment(8)).thenReturn(false);
+
+        org.junit.jupiter.api.Assertions.assertThrows(
+            BusinessException.class,
+            () -> new PaymentService(repository).create(3, new Requests.Payment(8, "PSE"))
+        );
+    }
+
+    @Test
+    void rejectsPaymentWhenReservationIsAlreadyConfirmed() {
+        TravelRepositoryPort repository = mock(TravelRepositoryPort.class);
+
+        Reservation reservation = new Reservation();
+        reservation.setIdReserva(8);
+        reservation.setIdUsuario(3);
+        reservation.setEstado("CONFIRMADA");
+
+        when(repository.findReservation(8)).thenReturn(Optional.of(reservation));
+
+        org.junit.jupiter.api.Assertions.assertThrows(
+            BusinessException.class,
+            () -> new PaymentService(repository).create(3, new Requests.Payment(8, "PSE"))
+        );
+    }
 }
