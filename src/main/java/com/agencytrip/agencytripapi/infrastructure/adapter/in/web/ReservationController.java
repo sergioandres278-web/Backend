@@ -40,7 +40,7 @@ public class ReservationController {
         return (role(jwt).equals("CLIENTE") ? service.byUser(id(jwt)) : service.all()).stream().map(ApiResponses::reservation).toList();
     }
 
-    @Operation(summary = "Crear reserva", description = "Valida la disponibilidad de cupos, calcula el precio total y descuenta los cupos del paquete seleccionado.", security = @SecurityRequirement(name = "bearerAuth"))
+    @Operation(summary = "Crear reserva", description = "Crea una reserva en estado PENDIENTE verificando la disponibilidad de cupos y calculando el precio total. Los cupos se descuentan al confirmar el pago.", security = @SecurityRequirement(name = "bearerAuth"))
     @io.swagger.v3.oas.annotations.responses.ApiResponses({ @ApiResponse(responseCode = "200", description = "Reserva creada correctamente"), @ApiResponse(responseCode = "400", description = "Los datos no son válidos o no hay cupos suficientes"), @ApiResponse(responseCode = "401", description = "Se requiere un token JWT válido"), @ApiResponse(responseCode = "404", description = "El paquete no existe o no está disponible") })
     @PostMapping
     public Object create(@AuthenticationPrincipal Jwt jwt, @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "Datos de la reserva, incluido el paquete y la cantidad de personas.", required = true) @Valid @RequestBody Requests.Reservation request) {

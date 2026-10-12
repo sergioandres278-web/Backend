@@ -94,7 +94,8 @@ public class ReservationService {
     ) {
 
         Reservation reservation =
-            repo.findReservation(id)
+            repo.findReservationForUpdate(id)
+                .or(() -> repo.findReservation(id))
                 .orElseThrow(() ->
                     CatalogService.notFound(
                         "La reserva no existe."
@@ -125,22 +126,79 @@ public class ReservationService {
             );
         }
 
-        /*
-         * Los cupos solamente se devuelven cuando una reserva
-         * que YA estaba confirmada es cancelada.
-         *
-         * Una reserva PENDIENTE nunca consumió cupos,
-         * por lo tanto no hay nada que devolver.
-         */
         if (
-            "CANCELADA".equals(status) &&
+            "CONFIRMADA".equals(status) &&
             "CONFIRMADA".equals(reservation.getEstado())
         ) {
 
+            throw CatalogService.bad(
+                "La reserva ya está confirmada."
+            );
+        }
+
+        if (
+            "CANCELADA".equals(reservation.getEstado()) &&
+            !"CANCELADA".equals(status)
+        ) {
+
+            throw CatalogService.bad(
+                "No se puede reactivar una reserva cancelada."
+            );
+        }
+
+        /*
+         * Si una reserva pasa a CONFIRMADA desde PENDIENTE,
+         * se validan y descuentan los cupos del paquete.
+         */
+        if (
+            "CONFIRMADA".equals(status) &&
+            "PENDIENTE".equals(reservation.getEstado())
+        ) {
+
             PackageTrip p =
-                repo.findPackage(
+                repo.findPackageForUpdate(
                     reservation.getIdPaquete()
-                ).orElseThrow(() ->
+                ).or(() -> repo.findPackage(reservation.getIdPaquete()))
+                .orElseThrow(() ->
+                    CatalogService.bad(
+                        "No se pudo obtener el paquete asociado."
+                    )
+                );
+
+            if (!p.isEstado()) {
+                throw CatalogService.bad(
+                    "El paquete asociado está desactivado."
+                );
+            }
+
+            if (reservation.getCantidadPersonas() > p.getCupos()) {
+                throw CatalogService.bad(
+                    "No hay suficientes cupos disponibles para confirmar esta reserva."
+                );
+            }
+
+            p.setCupos(
+                p.getCupos() -
+                reservation.getCantidadPersonas()
+            );
+
+            repo.savePackage(p);
+        }
+
+        /*
+         * Los cupos se devuelven cuando una reserva que estaba
+         * CONFIRMADA pasa a CANCELADA o vuelve a PENDIENTE.
+         */
+        if (
+            "CONFIRMADA".equals(reservation.getEstado()) &&
+            ("CANCELADA".equals(status) || "PENDIENTE".equals(status))
+        ) {
+
+            PackageTrip p =
+                repo.findPackageForUpdate(
+                    reservation.getIdPaquete()
+                ).or(() -> repo.findPackage(reservation.getIdPaquete()))
+                .orElseThrow(() ->
                     CatalogService.bad(
                         "No se pudo obtener el paquete asociado."
                     )
