@@ -5,6 +5,11 @@ import java.util.Optional;
 
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+
+import jakarta.persistence.LockModeType;
 
 import com.agencytrip.agencytripapi.infrastructure.adapter.out.persistence.entity.DestinationEntity;
 import com.agencytrip.agencytripapi.infrastructure.adapter.out.persistence.entity.HotelEntity;
@@ -56,6 +61,10 @@ interface PackageJpaRepository extends JpaRepository<PackageEntity, Integer> {
 
     @EntityGraph(attributePaths = {"destino", "transporte", "hotel"})
     Optional<PackageEntity> findById(Integer id);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT p FROM PackageEntity p WHERE p.idPaquete = :id")
+    Optional<PackageEntity> findByIdForUpdate(@Param("id") Integer id);
 }
 
 interface ReservationJpaRepository extends JpaRepository<ReservationEntity, Integer> {
@@ -89,6 +98,10 @@ interface ReservationJpaRepository extends JpaRepository<ReservationEntity, Inte
         "paquete.hotel"
     })
     Optional<ReservationEntity> findById(Integer id);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT r FROM ReservationEntity r WHERE r.idReserva = :id")
+    Optional<ReservationEntity> findByIdForUpdate(@Param("id") Integer id);
 }
 
 interface PaymentJpaRepository extends JpaRepository<PaymentEntity, Integer> {
