@@ -142,9 +142,11 @@ public class UserController {
             @Parameter(description = "Identificador del usuario a actualizar.", required = true) @PathVariable int id,
             @io.swagger.v3.oas.annotations.parameters.RequestBody(
                     description = "Información actualizada de la cuenta de usuario.", required = true)
-            @Valid @RequestBody Requests.UserUpdate r) {
+            @Valid @RequestBody Requests.UserUpdate r,
+            @AuthenticationPrincipal Jwt jwt) {
 
-        User u = service.update(id, r);
+        int authUserId = extractUserId(jwt);
+        User u = service.update(id, r, authUserId);
 
         return Map.of(
             "mensaje", "Usuario actualizado correctamente.",
@@ -167,12 +169,24 @@ public class UserController {
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMINISTRADOR')")
     public Map<String, String> disable(
-            @Parameter(description = "Identificador del usuario a desactivar.", required = true) @PathVariable int id) {
+            @Parameter(description = "Identificador del usuario a desactivar.", required = true) @PathVariable int id,
+            @AuthenticationPrincipal Jwt jwt) {
 
-        service.disable(id);
+        int authUserId = extractUserId(jwt);
+        service.disable(id, authUserId);
 
         return Map.of(
             "mensaje", "Usuario desactivado correctamente."
         );
+    }
+
+    private static int extractUserId(Jwt jwt) {
+        if (jwt == null || jwt.getClaim("userId") == null) {
+            throw new com.agencytrip.agencytripapi.application.service.BusinessException(
+                org.springframework.http.HttpStatus.UNAUTHORIZED,
+                "Token JWT inválido: no contiene identificador de usuario."
+            );
+        }
+        return ((Number) jwt.getClaim("userId")).intValue();
     }
 }
