@@ -1,7 +1,8 @@
-﻿services:
+services:
   api:
     build:
       context: ./agencytrip-api
+      dockerfile: Dockerfile
     container_name: agencytrip-api
     restart: unless-stopped
     environment:
@@ -17,24 +18,50 @@
       - "8080:8080"
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8080/api/Paquetes || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
 
   chatbot:
     build:
       context: ./agencytrip-chatbot-api/agencytrip-chatbot-api
+      dockerfile: Dockerfile
     container_name: agencytrip-chatbot
     restart: unless-stopped
     environment:
-      CHATBOT_CORS_ALLOWED_ORIGIN: http://localhost:4200
+      CHATBOT_CORS_ALLOWED_ORIGIN: ${CHATBOT_CORS_ALLOWED_ORIGIN:-http://localhost:4200}
+      AGENCYTRIP_API_URL: ${AGENCYTRIP_API_URL:-http://agencytrip-api:8080}
     ports:
       - "8081:8081"
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8081/api/chatbot/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
 
   frontend:
     build:
       context: ./agencia-viajes-frontend
+      dockerfile: Dockerfile
     container_name: agencytrip-frontend
     restart: unless-stopped
     ports:
       - "4200:80"
     depends_on:
-      - api
-      - chatbot
+      api:
+        condition: service_healthy
+      chatbot:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1/ || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
