@@ -34,6 +34,9 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import java.util.List;
+import java.util.Arrays;
+import java.util.stream.Collectors;
 
 @Configuration
 @EnableWebSecurity
@@ -189,7 +192,22 @@ public class SecurityConfig {
         CorsConfiguration configuration =
                 new CorsConfiguration();
 
-        configuration.addAllowedOrigin("http://localhost:4200");
+        // Variable de entorno que puede contener varios orígenes separados por comas.
+        // Si está vacía o no se define, se usa el origen local por defecto.
+        String allowedOrigins = System.getenv("AGENCYTRIP_CORS_ALLOWED_ORIGIN");
+        if (allowedOrigins == null || allowedOrigins.isBlank()) {
+            allowedOrigins = "http://localhost:4200";
+        }
+        // Eliminar espacios y crear lista de orígenes.
+        List<String> origins = Arrays.stream(allowedOrigins.split(","))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .collect(Collectors.toList());
+        if (origins.isEmpty()) {
+            origins = List.of("http://localhost:4200");
+        }
+        configuration.setAllowedOrigins(origins);
+
         configuration.addAllowedHeader("*");
         configuration.addAllowedMethod("*");
 
