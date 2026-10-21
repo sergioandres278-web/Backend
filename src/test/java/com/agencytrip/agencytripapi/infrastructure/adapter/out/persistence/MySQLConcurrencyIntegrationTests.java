@@ -20,6 +20,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ActiveProfiles;
+import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.api.AfterAll;
 
 import com.agencytrip.agencytripapi.application.dto.Requests;
 import com.agencytrip.agencytripapi.application.service.BusinessException;
@@ -43,9 +46,9 @@ import com.agencytrip.agencytripapi.infrastructure.adapter.out.persistence.entit
  * Solo crea y elimina registros transitorios aislados (con prefijo TEST_CONCURRENCY_),
  * garantizando que los datos existentes en la base de datos MySQL no se eliminen ni alteren.
  */
-@SpringBootTest(properties = {
-    "agencytrip.jwt.secret=test_jwt_secret_key_with_at_least_32_characters_12345"
-})
+@SpringBootTest
+@ActiveProfiles("test")
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class MySQLConcurrencyIntegrationTests {
 
     @Autowired
@@ -76,7 +79,8 @@ class MySQLConcurrencyIntegrationTests {
     private final List<Integer> createdReservationIds = new ArrayList<>();
     private final List<Integer> createdPackageIds = new ArrayList<>();
 
-    private UserEntity testUser;
+    private final String testRunId = UUID.randomUUID().toString();
+private UserEntity testUser;
     private DestinationEntity testDestination;
     private HotelEntity testHotel;
     private TransportEntity testTransport;
@@ -114,7 +118,7 @@ class MySQLConcurrencyIntegrationTests {
 
     private PackageEntity createTestPackage(int cupos) {
         PackageEntity pkg = new PackageEntity();
-        pkg.setNombre("TEST_CONCURRENCY_" + UUID.randomUUID().toString().substring(0, 8));
+        pkg.setNombre("TEST_CONCURRENCY_" + testRunId + "_" + UUID.randomUUID().toString().substring(0, 8));
         pkg.setDescripcion("Paquete de prueba para validación de concurrencia");
         pkg.setPrecio(new BigDecimal("150000.00"));
         pkg.setFechaSalida(LocalDateTime.now().plusDays(10));
@@ -262,5 +266,28 @@ class MySQLConcurrencyIntegrationTests {
         boolean res1Confirmed = "CONFIRMADA".equals(updatedRes1.getEstado());
         boolean res2Confirmed = "CONFIRMADA".equals(updatedRes2.getEstado());
         assertTrue(res1Confirmed ^ res2Confirmed, "Exactamente una de las dos reservas debe estar CONFIRMADA y la otra PENDIENTE");
+    }
+
+
+    @AfterAll
+    void cleanUpAll() {
+        // Remove any leftover test packages and their related data.
+        List<PackageEntity> testPackages = packageRepo.findAll().stream()
+                .filter(p -> p.getNombre() != null && p.getNombre().contains(testRunId))
+                .toList();
+        for (PackageEntity pkg : testPackages) {
+            // Remove associated reservations and payments
+            List<ReservationEntity> resList = reservationRepo.findAll().stream()
+                    .filter(r -> r.getIdPaquete() != null && r.getIdPaquete().equals(pkg.getIdPaquete()))
+                    .toList();
+            for (ReservationEntity res : resList) {
+                // Delete payments linked to this reservation
+                paymentRepo.findAll().stream()
+                        .filter(p -> p.getIdReserva() != null && p.getIdReserva().equals(res.getIdReserva()))
+                        .forEach(paymentRepo::delete);
+                reservationRepo.delete(res);
+            }
+            packageRepo.delete(pkg);
+        }
     }
 }
