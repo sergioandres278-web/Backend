@@ -65,11 +65,19 @@ La aplicación usa `DB_URL`, `DB_USERNAME`, `DB_PASSWORD` y `JWT_SECRET`. El pue
 La configuración pública se encuentra en:
 
 - `application.properties`
-- `application-dev.properties`
-- `application-pre.properties`
-- `application-prod.properties`
+- `environments/application-dev.properties`
+- `environments/application-pre.properties`
+- `environments/application-prod.properties`
 
-Activa un perfil con `SPRING_PROFILES_ACTIVE`, por ejemplo `dev`, `pre` o `prod`. Las credenciales se siguen tomando exclusivamente del entorno.
+`application.properties` concentra los valores comunes: conexión MySQL mediante variables de entorno, JWT y puerto. Los perfiles se importan explícitamente desde `environments/`; Spring solo aplica el archivo correspondiente al perfil activo.
+
+Activa un perfil con `SPRING_PROFILES_ACTIVE`, por ejemplo `dev`, `pre` o `prod`. En PowerShell también puede iniciarse desarrollo con:
+
+```powershell
+.\mvnw.cmd spring-boot:run "-Dspring-boot.run.profiles=dev"
+```
+
+Las credenciales y los secretos se siguen tomando exclusivamente del entorno.
 
 ## Ejecutar
 
