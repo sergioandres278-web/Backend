@@ -1,8 +1,11 @@
 package com.agencytrip.agencytripapi.infrastructure.adapter.in.web;
 
 import java.util.Map;
+import java.util.List;
 
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -12,6 +15,7 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.security.core.Authentication;
 
 import com.agencytrip.agencytripapi.application.dto.Requests;
 import com.agencytrip.agencytripapi.application.service.ReservationService;
@@ -35,16 +39,36 @@ public class ReservationController {
 
     @Operation(summary = "Consultar reservas", description = "Un cliente obtiene únicamente sus reservas; los demás roles pueden consultar todas las reservas.", security = @SecurityRequirement(name = "bearerAuth"))
     @io.swagger.v3.oas.annotations.responses.ApiResponses({ @ApiResponse(responseCode = "200", description = "Reservas obtenidas correctamente"), @ApiResponse(responseCode = "401", description = "Se requiere un token JWT válido") })
-    @GetMapping
-    public Object list(@AuthenticationPrincipal Jwt jwt) {
-        return (role(jwt).equals("CLIENTE") ? service.byUser(id(jwt)) : service.all()).stream().map(ApiResponses::reservation).toList();
+@GetMapping
+public Object list(@AuthenticationPrincipal Jwt jwt) {
+    if (jwt == null) {
+        throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
     }
+    Object claim = jwt.getClaim("roles");
+    List<String> roles = claim instanceof java.util.Collection ? new java.util.ArrayList<>((java.util.Collection<String>) claim) : (claim == null ? java.util.Collections.emptyList() : java.util.Collections.singletonList(claim.toString()));
+    // If no roles are present or the list is empty, treat as unauthorized
+    if (roles.isEmpty()) {
+        throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
+    }
+    boolean isCliente = roles.contains("ROLE_CLIENTE");
+    boolean isAdmin = roles.contains("ROLE_ADMINISTRADOR");
+    if (isCliente) {
+        return service.byUser(id(jwt)).stream().map(ApiResponses::reservation).toList();
+    }
+    if (isAdmin) {
+        return service.all().stream().map(ApiResponses::reservation).toList();
+    }
+    throw new ResponseStatusException(HttpStatus.FORBIDDEN);
+}
 
     @Operation(summary = "Crear reserva", description = "Crea una reserva en estado PENDIENTE verificando la disponibilidad de cupos y calculando el precio total. Los cupos se descuentan al confirmar el pago.", security = @SecurityRequirement(name = "bearerAuth"))
     @io.swagger.v3.oas.annotations.responses.ApiResponses({ @ApiResponse(responseCode = "200", description = "Reserva creada correctamente"), @ApiResponse(responseCode = "400", description = "Los datos no son válidos o no hay cupos suficientes"), @ApiResponse(responseCode = "401", description = "Se requiere un token JWT válido"), @ApiResponse(responseCode = "404", description = "El paquete no existe o no está disponible") })
     @PostMapping
     public Object create(@AuthenticationPrincipal Jwt jwt, @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "Datos de la reserva, incluido el paquete y la cantidad de personas.", required = true) @Valid @RequestBody Requests.Reservation request) {
-        Reservation reservation = service.create(id(jwt), request);
+        if (jwt == null) {
+    throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
+}
+Reservation reservation = service.create(id(jwt), request);
         return Map.of("mensaje", "Reserva creada correctamente.", "reserva", ApiResponses.reservation(reservation));
     }
 
@@ -58,5 +82,18 @@ public class ReservationController {
     }
 
     static int id(Jwt jwt) { return ((Number) jwt.getClaim("userId")).intValue(); }
-    static String role(Jwt jwt) { return jwt.getClaimAsStringList("roles").getFirst(); }
+    static String role(Jwt jwt) {
+        if (jwt == null) return null;
+        Object claim = jwt.getClaim("roles");
+        if (claim == null) return null;
+        String raw;
+        if (claim instanceof java.util.Collection) {
+            java.util.Iterator<?> it = ((java.util.Collection<?>) claim).iterator();
+            raw = it.hasNext() ? String.valueOf(it.next()) : null;
+        } else {
+            raw = claim.toString();
+        }
+        if (raw == null) return null;
+        return raw;
+    }
 }
