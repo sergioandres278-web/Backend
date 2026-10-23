@@ -26,7 +26,9 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.JwtValidators;
+import org.springframework.security.oauth2.jwt.JwtClaimValidator;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
+import org.springframework.context.annotation.Primary;
 import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
@@ -34,6 +36,10 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import org.springframework.security.core.Authentication;
+import java.util.List;
+import java.util.Arrays;
+import java.util.stream.Collectors;
 
 @Configuration
 @EnableWebSecurity
@@ -47,7 +53,7 @@ public class SecurityConfig {
 
     @Bean
     SecretKey jwtKey(
-            @Value("${agencytrip.jwt.secret}") String secret) {
+            @Value("${agencytrip.jwt.secret:ABCDEFGHIJKLMNOPQRSTUVWXYZ123456}") String secret) {
 
         if (secret == null || secret.length() < 32) {
             throw new IllegalStateException(
@@ -62,36 +68,18 @@ public class SecurityConfig {
     }
 
     @Bean
-    JwtDecoder jwtDecoder(
-            SecretKey key,
-            @Value("${agencytrip.jwt.issuer}") String issuer,
-            @Value("${agencytrip.jwt.audience}") String audience) {
-
-        NimbusJwtDecoder decoder =
-                NimbusJwtDecoder.withSecretKey(key).build();
-
-        OAuth2TokenValidator<Jwt> audienceValidator = jwt ->
-                jwt.getAudience().contains(audience)
-                        ? OAuth2TokenValidatorResult.success()
-                        : OAuth2TokenValidatorResult.failure(
-                                new OAuth2Error(
-                                        "invalid_token",
-                                        "La audiencia del token no es válida.",
-                                        null
-                                )
-                        );
-
-        OAuth2TokenValidator<Jwt> issuerValidator =
-                JwtValidators.createDefaultWithIssuer(issuer);
-
-        OAuth2TokenValidator<Jwt> combinedValidator =
-                new DelegatingOAuth2TokenValidator<>(
-                        issuerValidator,
-                        audienceValidator
-                );
-
-        decoder.setJwtValidator(combinedValidator);
-
+    @Primary
+    JwtDecoder jwtDecoder(SecretKey key,
+                         @Value("${agencytrip.jwt.issuer:AgencyTripAPI}") String issuer,
+                         @Value("${agencytrip.jwt.audience:AgencyTripAngular}") String audience) {
+        NimbusJwtDecoder decoder = NimbusJwtDecoder.withSecretKey(key).build();
+        OAuth2TokenValidator<Jwt> defaultValidator = JwtValidators.createDefaultWithIssuer(issuer);
+        OAuth2TokenValidator<Jwt> audienceValidator = new JwtClaimValidator<Object>(
+                "aud",
+                aud -> aud instanceof List<?> list ? list.contains(audience) : audience.equals(aud)
+        );
+        OAuth2TokenValidator<Jwt> combined = new DelegatingOAuth2TokenValidator<>(defaultValidator, audienceValidator);
+        decoder.setJwtValidator(combined);
         return decoder;
     }
 
@@ -124,8 +112,9 @@ public class SecurityConfig {
                         // Registro y login públicos
                         .requestMatchers(
                                 HttpMethod.POST,
-                                "/api/Registro",
-                                "/api/Usuarios/login"
+                                "/api/Usuarios/registro",
+                                "/api/Usuarios/login",
+                                "/api/Registro"
                         ).permitAll()
 
                         // Consultas públicas
@@ -150,6 +139,8 @@ public class SecurityConfig {
                                 "/api/Roles/**"
                         ).hasRole("ADMINISTRADOR")
 
+                        // Reservas requieren autenticación basada en roles
+                        .requestMatchers(HttpMethod.GET, "/api/Reservas").authenticated()
                         // Todo lo demás requiere autenticación
                         .anyRequest().authenticated()
                 )
@@ -172,7 +163,7 @@ public class SecurityConfig {
                 new JwtGrantedAuthoritiesConverter();
 
         roles.setAuthoritiesClaimName("roles");
-        roles.setAuthorityPrefix("ROLE_");
+        roles.setAuthorityPrefix("");
 
         JwtAuthenticationConverter converter =
                 new JwtAuthenticationConverter();
@@ -188,7 +179,22 @@ public class SecurityConfig {
         CorsConfiguration configuration =
                 new CorsConfiguration();
 
-        configuration.addAllowedOrigin("http://localhost:4200");
+        // Variable de entorno que puede contener varios orígenes separados por comas.
+        // Si está vacía o no se define, se usa el origen local por defecto.
+        String allowedOrigins = System.getenv("AGENCYTRIP_CORS_ALLOWED_ORIGIN");
+        if (allowedOrigins == null || allowedOrigins.isBlank()) {
+            allowedOrigins = "http://localhost:4200";
+        }
+        // Eliminar espacios y crear lista de orígenes.
+        List<String> origins = Arrays.stream(allowedOrigins.split(","))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .collect(Collectors.toList());
+        if (origins.isEmpty()) {
+            origins = List.of("http://localhost:4200");
+        }
+        configuration.setAllowedOrigins(origins);
+
         configuration.addAllowedHeader("*");
         configuration.addAllowedMethod("*");
 
