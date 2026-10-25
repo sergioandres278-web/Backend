@@ -22,4 +22,38 @@ class UserLoginTests {
         when(repository.findUserByEmail("ana@test.co")).thenReturn(Optional.of(user)); when(hasher.matches("clave", "hash")).thenReturn(true); when(tokens.create(1, "Ana", "ana@test.co", "CLIENTE")).thenReturn("jwt");
         assertEquals("jwt", new UserService(repository, hasher, tokens).login(new Requests.Login("ana@test.co", "clave")).token());
     }
+
+    @Test void rejectsWhenUserNotFound() {
+        TravelRepositoryPort repository = mock(TravelRepositoryPort.class);
+        when(repository.findUserByEmail("inexistente@test.co")).thenReturn(Optional.empty());
+        org.junit.jupiter.api.Assertions.assertThrows(
+            BusinessException.class,
+            () -> new UserService(repository, mock(PasswordHasherPort.class), mock(TokenPort.class))
+                    .login(new Requests.Login("inexistente@test.co", "clave"))
+        );
+    }
+
+    @Test void rejectsWhenUserIsInactive() {
+        TravelRepositoryPort repository = mock(TravelRepositoryPort.class);
+        User user = new User(); user.setEstado(false);
+        when(repository.findUserByEmail("inactivo@test.co")).thenReturn(Optional.of(user));
+        org.junit.jupiter.api.Assertions.assertThrows(
+            BusinessException.class,
+            () -> new UserService(repository, mock(PasswordHasherPort.class), mock(TokenPort.class))
+                    .login(new Requests.Login("inactivo@test.co", "clave"))
+        );
+    }
+
+    @Test void rejectsWhenPasswordDoesNotMatch() {
+        TravelRepositoryPort repository = mock(TravelRepositoryPort.class);
+        PasswordHasherPort hasher = mock(PasswordHasherPort.class);
+        User user = new User(); user.setCorreo("ana@test.co"); user.setPassword("hash"); user.setEstado(true);
+        when(repository.findUserByEmail("ana@test.co")).thenReturn(Optional.of(user));
+        when(hasher.matches("erronea", "hash")).thenReturn(false);
+        org.junit.jupiter.api.Assertions.assertThrows(
+            BusinessException.class,
+            () -> new UserService(repository, hasher, mock(TokenPort.class))
+                    .login(new Requests.Login("ana@test.co", "erronea"))
+        );
+    }
 }

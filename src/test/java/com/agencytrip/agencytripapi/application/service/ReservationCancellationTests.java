@@ -207,4 +207,41 @@ class ReservationCancellationTests {
             () -> new ReservationService(repository).changeStatus(7, new Requests.ReservationStatus("CONFIRMADA"))
         );
     }
-}
+
+    @Test
+    void rejectsWhenReservationDoesNotExist() {
+        TravelRepositoryPort repository = mock(TravelRepositoryPort.class);
+        when(repository.findReservation(99)).thenReturn(Optional.empty());
+
+        org.junit.jupiter.api.Assertions.assertThrows(
+            BusinessException.class,
+            () -> new ReservationService(repository).changeStatus(99, new Requests.ReservationStatus("CANCELADA"))
+        );
+    }
+
+    @Test
+    void rejectsWhenReservationAlreadyCancelled() {
+        TravelRepositoryPort repository = mock(TravelRepositoryPort.class);
+        Reservation reservation = new Reservation();
+        reservation.setEstado("CANCELADA");
+        when(repository.findReservation(7)).thenReturn(Optional.of(reservation));
+
+        org.junit.jupiter.api.Assertions.assertThrows(
+            BusinessException.class,
+            () -> new ReservationService(repository).changeStatus(7, new Requests.ReservationStatus("CANCELADA"))
+        );
+    }
+
+    @Test
+    void rejectsInvalidStatus() {
+        TravelRepositoryPort repository = mock(TravelRepositoryPort.class);
+        Reservation reservation = new Reservation();
+        reservation.setEstado("PENDIENTE");
+        when(repository.findReservation(7)).thenReturn(Optional.of(reservation));
+
+        org.junit.jupiter.api.Assertions.assertThrows(
+            BusinessException.class,
+            () -> new ReservationService(repository).changeStatus(7, new Requests.ReservationStatus("ESTADO_INVENTADO"))
+        );
+    }
+}

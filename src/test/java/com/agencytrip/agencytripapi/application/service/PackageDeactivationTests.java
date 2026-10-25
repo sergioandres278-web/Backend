@@ -18,4 +18,29 @@ class PackageDeactivationTests {
         when(repository.findPackage(1)).thenReturn(Optional.of(trip));
         assertThrows(BusinessException.class, () -> new PackageService(repository).disable(1));
     }
+
+    @Test void rejectsDisablingNonExistentPackage() {
+        TravelRepositoryPort repository = mock(TravelRepositoryPort.class);
+        when(repository.findPackage(99)).thenReturn(Optional.empty());
+        assertThrows(BusinessException.class, () -> new PackageService(repository).disable(99));
+    }
+
+    @Test void rejectsUpdatingNonExistentPackage() {
+        TravelRepositoryPort repository = mock(TravelRepositoryPort.class);
+        when(repository.findPackage(99)).thenReturn(Optional.empty());
+        java.time.LocalDateTime now = java.time.LocalDateTime.now();
+        com.agencytrip.agencytripapi.application.dto.Requests.PackageTrip req =
+            new com.agencytrip.agencytripapi.application.dto.Requests.PackageTrip("Plan", "Desc", java.math.BigDecimal.TEN, now, now.plusDays(1), 5, 1, null, null);
+        assertThrows(BusinessException.class, () -> new PackageService(repository).update(99, req));
+    }
+
+    @Test void rejectsUpdatingDeactivatedPackage() {
+        TravelRepositoryPort repository = mock(TravelRepositoryPort.class);
+        PackageTrip trip = new PackageTrip(); trip.setEstado(false);
+        when(repository.findPackage(1)).thenReturn(Optional.of(trip));
+        java.time.LocalDateTime now = java.time.LocalDateTime.now();
+        com.agencytrip.agencytripapi.application.dto.Requests.PackageTrip req =
+            new com.agencytrip.agencytripapi.application.dto.Requests.PackageTrip("Plan", "Desc", java.math.BigDecimal.TEN, now, now.plusDays(1), 5, 1, null, null);
+        assertThrows(BusinessException.class, () -> new PackageService(repository).update(1, req));
+    }
 }

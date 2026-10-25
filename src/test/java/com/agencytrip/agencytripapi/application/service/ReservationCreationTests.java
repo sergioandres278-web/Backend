@@ -56,11 +56,36 @@ class ReservationCreationTests {
             "PENDIENTE",
             reservation.getEstado()
         );
-
         // Crear la reserva no debe descontar cupos.
         assertEquals(
             5,
             trip.getCupos()
         );
     }
-}
+
+    @Test
+    void rejectsReservationWhenPackageDoesNotExist() {
+        TravelRepositoryPort repository = mock(TravelRepositoryPort.class);
+        when(repository.findPackage(99)).thenReturn(Optional.empty());
+
+        org.junit.jupiter.api.Assertions.assertThrows(
+            BusinessException.class,
+            () -> new ReservationService(repository).create(1, new Requests.Reservation(99, 2))
+        );
+    }
+
+    @Test
+    void rejectsReservationWhenPackageIsInactive() {
+        TravelRepositoryPort repository = mock(TravelRepositoryPort.class);
+        PackageTrip trip = new PackageTrip();
+        trip.setIdPaquete(4);
+        trip.setEstado(false);
+        trip.setCupos(10);
+        when(repository.findPackage(4)).thenReturn(Optional.of(trip));
+
+        org.junit.jupiter.api.Assertions.assertThrows(
+            BusinessException.class,
+            () -> new ReservationService(repository).create(1, new Requests.Reservation(4, 2))
+        );
+    }
+}
