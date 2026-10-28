@@ -91,6 +91,12 @@ public class SecurityConfig {
     }
 
     @Bean
+    // Justificacion tecnica de seguridad (SonarQube java:S4502):
+    // Esta API REST opera de forma estrictamente apatrida (SessionCreationPolicy.STATELESS).
+    // La autenticacion se realiza mediante tokens JWT transportados exclusivamente en el
+    // encabezado HTTP 'Authorization: Bearer <token>' y gestionados en memoria/almacenamiento
+    // del cliente. Al no utilizar cookies de sesion del navegador ni autenticacion implicita,
+    // la aplicacion no es susceptible a ataques de falsificacion de peticiones entre sitios (CSRF).
     SecurityFilterChain filterChain(
             HttpSecurity http,
             JwtDecoder decoder,
@@ -109,7 +115,7 @@ public class SecurityConfig {
 
                 .authorizeHttpRequests(auth -> auth
 
-                        // Registro y login públicos
+                        // Registro y login pÃºblicos
                         .requestMatchers(
                                 HttpMethod.POST,
                                 "/api/Usuarios/registro",
@@ -117,7 +123,7 @@ public class SecurityConfig {
                                 "/api/Registro"
                         ).permitAll()
 
-                        // Consultas públicas
+                        // Consultas pÃºblicas
                         .requestMatchers(
                                 HttpMethod.GET,
                                 "/api/Destinos",
@@ -126,22 +132,22 @@ public class SecurityConfig {
                                 "/api/Transportes"
                         ).permitAll()
 
-                        // Swagger / OpenAPI públicos
+                        // Swagger / OpenAPI pÃºblicos
                         .requestMatchers(
                                 "/swagger-ui.html",
                                 "/swagger-ui/**",
                                 "/v3/api-docs/**"
                         ).permitAll()
 
-                        // Administración
+                        // AdministraciÃ³n
                         .requestMatchers(
                                 "/api/Admin/**",
                                 "/api/Roles/**"
                         ).hasRole("ADMINISTRADOR")
 
-                        // Reservas requieren autenticación basada en roles
+                        // Reservas requieren autenticaciÃ³n basada en roles
                         .requestMatchers(HttpMethod.GET, "/api/Reservas").authenticated()
-                        // Todo lo demás requiere autenticación
+                        // Todo lo demÃ¡s requiere autenticaciÃ³n
                         .anyRequest().authenticated()
                 )
 
@@ -163,7 +169,7 @@ public class SecurityConfig {
                 new JwtGrantedAuthoritiesConverter();
 
         roles.setAuthoritiesClaimName("roles");
-        roles.setAuthorityPrefix("");
+        roles.setAuthorityPrefix("ROLE_");
 
         JwtAuthenticationConverter converter =
                 new JwtAuthenticationConverter();
@@ -179,13 +185,13 @@ public class SecurityConfig {
         CorsConfiguration configuration =
                 new CorsConfiguration();
 
-        // Variable de entorno que puede contener varios orígenes separados por comas.
-        // Si está vacía o no se define, se usa el origen local por defecto.
+        // Variable de entorno que puede contener varios orÃ­genes separados por comas.
+        // Si estÃ¡ vacÃ­a o no se define, se usa el origen local por defecto.
         String allowedOrigins = System.getenv("AGENCYTRIP_CORS_ALLOWED_ORIGIN");
         if (allowedOrigins == null || allowedOrigins.isBlank()) {
             allowedOrigins = "http://localhost:4200";
         }
-        // Eliminar espacios y crear lista de orígenes.
+        // Eliminar espacios y crear lista de orÃ­genes.
         List<String> origins = Arrays.stream(allowedOrigins.split(","))
                 .map(String::trim)
                 .filter(s -> !s.isEmpty())

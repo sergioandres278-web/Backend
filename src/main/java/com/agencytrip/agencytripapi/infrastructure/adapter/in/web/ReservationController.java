@@ -50,8 +50,8 @@ public Object list(@AuthenticationPrincipal Jwt jwt) {
     if (roles.isEmpty()) {
         throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
     }
-    boolean isCliente = roles.contains("ROLE_CLIENTE");
-    boolean isAdmin = roles.contains("ROLE_ADMINISTRADOR");
+    boolean isCliente = (roles.contains("ROLE_CLIENTE") || roles.contains("CLIENTE"));
+    boolean isAdmin = (roles.contains("ROLE_ADMINISTRADOR") || roles.contains("ADMINISTRADOR"));
     if (isCliente) {
         return service.byUser(id(jwt)).stream().map(ApiResponses::reservation).toList();
     }

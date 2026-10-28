@@ -1,5 +1,6 @@
 package com.agencytrip.agencytripapi.infrastructure.adapter.in.web;
 
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -11,6 +12,10 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+
 @SpringBootTest
 class JwtAudienceDebugTest {
 
@@ -18,7 +23,8 @@ class JwtAudienceDebugTest {
     @Autowired private SecretKey jwtKey;
 
     @Test
-    void printAudience() {
+    @DisplayName("Verifica la codificacion y decodificacion correcta de claims de audiencia y emisor en tokens JWT")
+    void verifyAudienceAndIssuerEncodingAndDecoding() {
         JwtClaimsSet claims = JwtClaimsSet.builder()
                 .issuer("test-issuer")
                 .audience(List.of("test-audience"))
@@ -28,10 +34,15 @@ class JwtAudienceDebugTest {
                 .build();
 
         String token = jwtEncoder.encode(JwtEncoderParameters.from(JwsHeader.with(MacAlgorithm.HS256).build(), claims)).getTokenValue();
-        System.out.println("Generated token: " + token);
+        assertNotNull(token, "El token generado no debe ser nulo");
+        assertFalse(token.isBlank(), "El token generado no debe estar en blanco");
 
         NimbusJwtDecoder decoder = NimbusJwtDecoder.withSecretKey(jwtKey).build();
         Jwt decoded = decoder.decode(token);
-        System.out.println("Decoded audience: " + decoded.getAudience());
+        assertNotNull(decoded, "El token decodificado no debe ser nulo");
+        assertEquals(List.of("test-audience"), decoded.getAudience(), "La audiencia decodificada debe coincidir con la configurada");
+        assertNotNull(decoded.getClaimAsString("iss"), "El emisor del token debe estar presente");
+        assertEquals("test-issuer", decoded.getClaimAsString("iss"), "El emisor debe coincidir con test-issuer");
+        assertEquals("debug", decoded.getSubject(), "El sujeto debe coincidir con debug");
     }
 }
