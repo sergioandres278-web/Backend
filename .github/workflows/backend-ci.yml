@@ -45,6 +45,8 @@ jobs:
       TEST_DB_PASSWORD: root
       SPRING_PROFILES_ACTIVE: test
       JWT_SECRET: AGENCYTRIP_CI_PIPELINE_SECRET_KEY_FOR_TESTS_2026
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
 
     steps:
       - name: Checkout Source Code
@@ -103,10 +105,7 @@ jobs:
       # Paso condicional para SonarQube / SonarCloud
       # Se ejecuta exclusivamente si se encuentran configurados los secretos en el repositorio
       - name: SonarQube Quality Analysis (Optional / Secrets-based)
-        if: ${{ secrets.SONAR_TOKEN != '' && secrets.SONAR_HOST_URL != '' }}
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+        if: env.SONAR_TOKEN != '' && env.SONAR_HOST_URL != ''
         run: |
           ./mvnw org.sonarsource.scanner.maven:sonar-maven-plugin:sonar \
             -Dsonar.host.url="${SONAR_HOST_URL}" \
