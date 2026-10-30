@@ -1,0 +1,115 @@
+name: Backend CI - AgencyTrip API
+
+on:
+  push:
+    branches:
+      - DEV
+      - PRE
+      - PROD
+      - main
+  pull_request:
+    branches:
+      - DEV
+      - PRE
+      - PROD
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    name: Build, Test & Quality
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: agencia_viajes_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping --silent"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    env:
+      DB_URL: jdbc:mysql://127.0.0.1:3306/agencia_viajes_test
+      DB_USERNAME: root
+      DB_PASSWORD: root
+      TEST_DB_USERNAME: root
+      TEST_DB_PASSWORD: root
+      SPRING_PROFILES_ACTIVE: test
+      JWT_SECRET: AGENCYTRIP_CI_PIPELINE_SECRET_KEY_FOR_TESTS_2026
+
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK 21 (Temurin)
+        uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: "21"
+          cache: "maven"
+
+      - name: Make Maven Wrapper Executable
+        run: chmod +x ./mvnw
+
+      - name: Initialize Test Database Schema & Seed
+        run: |
+          echo "Aplicando esquema y datos semilla a agencia_viajes_test en MySQL de prueba..."
+          MYSQL_PWD=root mysql -h 127.0.0.1 -u root agencia_viajes_test < src/test/resources/init-test-db.sql
+          echo "Base de datos de prueba inicializada correctamente."
+
+      - name: Execute Backend Tests & Generate JaCoCo Report
+        run: |
+          ./mvnw clean test
+
+      - name: Build Backend Application Artifact (JAR)
+        run: |
+          ./mvnw package -DskipTests
+
+      - name: Publish Surefire Test Reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: backend-surefire-reports
+          path: target/surefire-reports/
+          retention-days: 14
+
+      - name: Publish JaCoCo Coverage Report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: backend-jacoco-report
+          path: target/site/jacoco/
+          retention-days: 14
+
+      - name: Publish Executable Application JAR
+        uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: agencytrip-api-artifact
+          path: target/agencytrip-api-*.jar
+          retention-days: 7
+
+      # Paso condicional para SonarQube / SonarCloud
+      # Se ejecuta exclusivamente si se encuentran configurados los secretos en el repositorio
+      - name: SonarQube Quality Analysis (Optional / Secrets-based)
+        if: ${{ secrets.SONAR_TOKEN != '' && secrets.SONAR_HOST_URL != '' }}
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+        run: |
+          ./mvnw org.sonarsource.scanner.maven:sonar-maven-plugin:sonar \
+            -Dsonar.host.url="${SONAR_HOST_URL}" \
+            -Dsonar.token="${SONAR_TOKEN}" \
+            -Dsonar.projectKey=agencytrip-api \
+            -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml
