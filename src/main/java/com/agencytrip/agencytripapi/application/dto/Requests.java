@@ -11,6 +11,14 @@ public final class Requests {
     @Schema(description = "Credenciales de acceso.") public record Login(@Schema(example = "ana@example.com") @NotBlank @Email String correo, @Schema(example = "ClaveSegura123") @NotBlank String password) {}
     @Schema(description = "Datos editables de un usuario.") public record UserUpdate(@NotBlank String nombre, @NotBlank String apellido, @NotBlank @Email String correo, @Schema(example = "2") @NotNull Integer idRol) {}
     @Schema(description = "Datos de un destino turístico.") public record Destination(@NotBlank String nombre, @NotBlank String pais, String descripcion, @Schema(description = "URL pública de imagen") String imagen) {}
+    @Schema(description = "Cambio de estado de un destino turístico.") public record DestinationStatus(@Schema(description = "Nuevo estado del destino (true para activo, false para inactivo).", example = "true") Object estado) {
+        public boolean toBoolean() {
+            if (estado == null) return true;
+            if (estado instanceof Boolean b) return b;
+            String s = estado.toString().trim().toLowerCase();
+            return s.equals("true") || s.equals("activo") || s.equals("1");
+        }
+    }
     @Schema(description = "Datos de un hotel.") public record Hotel(@NotBlank String nombre, String direccion, String ciudad, @Schema(example = "4") Integer categoria, String descripcion) {}
     @Schema(description = "Datos de un transporte.") public record Transport(@Schema(example = "AEREO") @NotBlank String tipo, String empresa, String descripcion) {}
     @Schema(description = "Datos de un paquete turístico.") public record PackageTrip(@NotBlank String nombre, String descripcion, @Schema(example = "125000") @NotNull @Positive BigDecimal precio, @NotNull LocalDateTime fechaSalida, @NotNull LocalDateTime fechaRegreso, @Schema(example = "10") @Positive int cupos, @NotNull Integer idDestino, Integer idTransporte, Integer idHotel) {}

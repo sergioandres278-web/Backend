@@ -19,11 +19,11 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     healthcheck:
-      test: ["CMD-SHELL", "curl -sf http://localhost:8080/api/Paquetes || exit 1"]
-      interval: 10s
-      timeout: 5s
+      test: ["CMD-SHELL", "curl -f -s -S http://localhost:8080/api/Destinos -o /dev/null || curl -f -s -S http://localhost:8080/api/Paquetes -o /dev/null || exit 1"]
+      interval: 15s
+      timeout: 10s
       retries: 5
-      start_period: 40s
+      start_period: 60s
 
   chatbot:
     build:
@@ -40,11 +40,11 @@ services:
       api:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "curl -sf http://localhost:8081/api/chatbot/health || exit 1"]
+      test: ["CMD-SHELL", "curl -f -s -S http://localhost:8081/api/chatbot/health -o /dev/null || exit 1"]
       interval: 15s
-      timeout: 5s
+      timeout: 10s
       retries: 5
-      start_period: 20s
+      start_period: 45s
 
   frontend:
     build:
@@ -64,4 +64,4 @@ services:
       interval: 15s
       timeout: 5s
       retries: 3
-      start_period: 10s
+      start_period: 15s

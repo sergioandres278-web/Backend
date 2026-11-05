@@ -9,6 +9,9 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.agencytrip.agencytripapi.application.dto.Requests;
@@ -32,10 +35,17 @@ public class CatalogController {
     }
 
     @Tag(name = "Destinos", description = "Catálogo de destinos turísticos disponibles.")
-    @Operation(summary = "Consultar destinos turísticos", description = "Obtiene el listado de destinos turísticos activos registrados en el sistema.")
+    @Operation(summary = "Consultar destinos turísticos", description = "Obtiene el listado de destinos turísticos registrados. Si todos es false, solo retorna activos.")
     @ApiResponses(@ApiResponse(responseCode = "200", description = "Listado de destinos obtenido correctamente"))
     @GetMapping("/api/Destinos")
-    public Object destinations() { return service.destinations(); }
+    public Object destinations(
+            @Parameter(description = "Si es true, incluye destinos activos e inactivos.")
+            @RequestParam(name = "todos", required = false, defaultValue = "false") boolean todos) {
+        if (todos) {
+            return service.allDestinations();
+        }
+        return service.destinations();
+    }
 
     @Tag(name = "Destinos", description = "Catálogo de destinos turísticos disponibles.")
     @Operation(summary = "Crear destino turístico", description = "Registra un destino turístico activo. Requiere el rol ADMINISTRADOR.", security = @SecurityRequirement(name = "bearerAuth"))
@@ -50,10 +60,41 @@ public class CatalogController {
     public Object updateDestination(@Parameter(description = "Identificador del destino a actualizar.", required = true) @PathVariable int id, @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "Datos actualizados del destino turístico.", required = true) @Valid @RequestBody Requests.Destination request) { return Map.of("mensaje", "Destino actualizado correctamente.", "destino", service.updateDestination(id, request)); }
 
     @Tag(name = "Destinos", description = "Catálogo de destinos turísticos disponibles.")
+    @Operation(summary = "Cambiar estado de destino turístico", description = "Actualiza el estado (activo o inactivo) de un destino existente. Requiere el rol ADMINISTRADOR.", security = @SecurityRequirement(name = "bearerAuth"))
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Estado del destino actualizado correctamente"),
+        @ApiResponse(responseCode = "401", description = "Se requiere un token JWT válido"),
+        @ApiResponse(responseCode = "403", description = "El usuario no cuenta con el rol ADMINISTRADOR"),
+        @ApiResponse(responseCode = "404", description = "El destino no existe")
+    })
+    @RequestMapping(value = "/api/Destinos/{id}/estado", method = {RequestMethod.PUT, RequestMethod.PATCH})
+    @PreAuthorize("hasRole('ADMINISTRADOR')")
+    public Object changeDestinationStatus(
+            @Parameter(description = "Identificador del destino a actualizar.", required = true) @PathVariable int id,
+            @RequestBody(required = false) Requests.DestinationStatus request) {
+        boolean nuevoEstado = (request != null) ? request.toBoolean() : true;
+        var d = service.changeDestinationStatus(id, nuevoEstado);
+        String msg = nuevoEstado ? "Destino activado correctamente." : "Destino desactivado correctamente.";
+        return Map.of("mensaje", msg, "destino", d);
+    }
+
+    @Tag(name = "Destinos", description = "Catálogo de destinos turísticos disponibles.")
+    @Operation(summary = "Activar destino turístico", description = "Reactiva un destino turístico inactivo. Requiere el rol ADMINISTRADOR.", security = @SecurityRequirement(name = "bearerAuth"))
+    @PutMapping("/api/Destinos/{id}/activar")
+    @PreAuthorize("hasRole('ADMINISTRADOR')")
+    public Object activateDestination(@Parameter(description = "Identificador del destino a activar.", required = true) @PathVariable int id) {
+        var d = service.changeDestinationStatus(id, true);
+        return Map.of("mensaje", "Destino activado correctamente.", "destino", d);
+    }
+
+    @Tag(name = "Destinos", description = "Catálogo de destinos turísticos disponibles.")
     @Operation(summary = "Desactivar destino turístico", description = "Cambia el estado de un destino a inactivo. Requiere el rol ADMINISTRADOR.", security = @SecurityRequirement(name = "bearerAuth"))
     @ApiResponses({ @ApiResponse(responseCode = "200", description = "Destino desactivado correctamente"), @ApiResponse(responseCode = "401", description = "Se requiere un token JWT válido"), @ApiResponse(responseCode = "403", description = "El usuario no cuenta con el rol ADMINISTRADOR"), @ApiResponse(responseCode = "404", description = "El destino no existe") })
     @DeleteMapping("/api/Destinos/{id}") @PreAuthorize("hasRole('ADMINISTRADOR')")
-    public Object disableDestination(@Parameter(description = "Identificador del destino a desactivar.", required = true) @PathVariable int id) { service.disableDestination(id); return Map.of("mensaje", "Destino desactivado correctamente."); }
+    public Object disableDestination(@Parameter(description = "Identificador del destino a desactivar.", required = true) @PathVariable int id) {
+        var d = service.changeDestinationStatus(id, false);
+        return Map.of("mensaje", "Destino desactivado correctamente.", "destino", d);
+    }
 
     @Tag(name = "Hoteles", description = "Catálogo de hoteles disponibles para los paquetes turísticos.")
     @Operation(summary = "Consultar hoteles", description = "Obtiene el listado de hoteles activos registrados en el sistema.")
