@@ -3,6 +3,7 @@ package com.agencytrip.agencytripapi.infrastructure.adapter.out.persistence;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
@@ -36,7 +37,7 @@ import com.agencytrip.agencytripapi.infrastructure.adapter.out.persistence.entit
 import com.agencytrip.agencytripapi.infrastructure.adapter.out.persistence.entity.UserEntity;
 
 /**
- * Pruebas de integración concurrentes contra MySQL real.
+ * Pruebas de integraciÃ³n concurrentes contra MySQL real.
  * 
  * Valida:
  * 1. Bloqueo pesimista (SELECT ... FOR UPDATE) para evitar pagos duplicados ante solicitudes concurrentes.
@@ -75,9 +76,9 @@ class MySQLConcurrencyIntegrationTests {
     @Autowired
     private TransportJpaRepository transportRepo;
 
-    private final List<Integer> createdPaymentIds = new ArrayList<>();
-    private final List<Integer> createdReservationIds = new ArrayList<>();
-    private final List<Integer> createdPackageIds = new ArrayList<>();
+    private final List<Integer> createdPaymentIds = new CopyOnWriteArrayList<>();
+    private final List<Integer> createdReservationIds = new CopyOnWriteArrayList<>();
+    private final List<Integer> createdPackageIds = new CopyOnWriteArrayList<>();
 
     private final String testRunId = UUID.randomUUID().toString();
 private UserEntity testUser;
@@ -99,7 +100,7 @@ private UserEntity testUser;
 
     @AfterEach
     void cleanUp() {
-        // Limpieza quirúrgica: solo se borran los registros creados durante la prueba
+        // Limpieza quirÃºrgica: solo se borran los registros creados durante la prueba
         for (Integer paymentId : createdPaymentIds) {
             paymentRepo.findById(paymentId).ifPresent(paymentRepo::delete);
         }
@@ -114,12 +115,15 @@ private UserEntity testUser;
         for (Integer pkgId : createdPackageIds) {
             packageRepo.findById(pkgId).ifPresent(packageRepo::delete);
         }
+        createdPaymentIds.clear();
+        createdReservationIds.clear();
+        createdPackageIds.clear();
     }
 
     private PackageEntity createTestPackage(int cupos) {
         PackageEntity pkg = new PackageEntity();
         pkg.setNombre("TEST_CONCURRENCY_" + testRunId + "_" + UUID.randomUUID().toString().substring(0, 8));
-        pkg.setDescripcion("Paquete de prueba para validación de concurrencia");
+        pkg.setDescripcion("Paquete de prueba para validaciÃ³n de concurrencia");
         pkg.setPrecio(new BigDecimal("150000.00"));
         pkg.setFechaSalida(LocalDateTime.now().plusDays(10));
         pkg.setFechaRegreso(LocalDateTime.now().plusDays(15));
@@ -190,7 +194,7 @@ private UserEntity testUser;
         }
         executor.shutdown();
 
-        // Verificación directa en MySQL
+        // VerificaciÃ³n directa en MySQL
         List<PaymentEntity> actualPaymentsInDb = paymentRepo.findAll().stream()
             .filter(p -> p.getIdReserva() != null && p.getIdReserva().equals(reservationId))
             .toList();
@@ -198,7 +202,7 @@ private UserEntity testUser;
         ReservationEntity updatedReservation = reservationRepo.findById(reservationId).orElseThrow();
         PackageEntity updatedPackage = packageRepo.findById(pkg.getIdPaquete()).orElseThrow();
 
-        assertEquals(1, successCount.get(), "Exactamente una solicitud concurrente de pago debió tener éxito");
+        assertEquals(1, successCount.get(), "Exactamente una solicitud concurrente de pago debiÃ³ tener Ã©xito");
         assertEquals(threadCount - 1, failureCount.get(), "Las solicitudes concurrentes duplicadas debieron fallar");
         assertEquals(1, actualPaymentsInDb.size(), "MySQL no debe contener pagos duplicados para la misma reserva");
         assertEquals("APROBADO", actualPaymentsInDb.get(0).getEstado(), "El pago registrado en MySQL debe ser APROBADO");
@@ -254,13 +258,13 @@ private UserEntity testUser;
         }
         executor.shutdown();
 
-        // Verificación directa en MySQL
+        // VerificaciÃ³n directa en MySQL
         PackageEntity updatedPackage = packageRepo.findById(pkg.getIdPaquete()).orElseThrow();
         ReservationEntity updatedRes1 = reservationRepo.findById(res1.getIdReserva()).orElseThrow();
         ReservationEntity updatedRes2 = reservationRepo.findById(res2.getIdReserva()).orElseThrow();
 
-        assertEquals(1, successCount.get(), "Solo una de las reservas concurrentes debió confirmarse con los 2 cupos disponibles");
-        assertEquals(1, failureCount.get(), "La otra solicitud concurrente debió fallar por cupos insuficientes");
+        assertEquals(1, successCount.get(), "Solo una de las reservas concurrentes debiÃ³ confirmarse con los 2 cupos disponibles");
+        assertEquals(1, failureCount.get(), "La otra solicitud concurrente debiÃ³ fallar por cupos insuficientes");
         assertEquals(0, updatedPackage.getCupos(), "Los cupos del paquete en MySQL deben ser 0 (no sobreventa, no negativos)");
 
         boolean res1Confirmed = "CONFIRMADA".equals(updatedRes1.getEstado());

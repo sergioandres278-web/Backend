@@ -84,6 +84,56 @@ public class UserController {
     }
 
     @Operation(
+        summary = "Autenticación con Google",
+        description = "Valida criptográficamente el ID Token emitido por Google Identity Services y devuelve un JWT de AgencyTrip."
+    )
+    @io.swagger.v3.oas.annotations.responses.ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Autenticación con Google realizada correctamente"),
+        @ApiResponse(responseCode = "400", description = "El token de Google no cumple las validaciones de identidad o correo"),
+        @ApiResponse(responseCode = "401", description = "Token de Google inválido o expirado"),
+        @ApiResponse(responseCode = "409", description = "Conflicto: el correo ya está registrado con una cuenta tradicional")
+    })
+    @PostMapping("/oauth/google")
+    public Map<String, Object> googleLogin(
+            @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                    description = "Token de identidad generado por Google Identity Services.", required = true)
+            @Valid @RequestBody Requests.GoogleOAuthLogin r) {
+
+        var x = service.loginWithGoogle(r);
+
+        return Map.of(
+            "mensaje", "Inicio de sesión exitoso.",
+            "token", x.token(),
+            "usuario", ApiResponses.userAuth(x.user(), x.role())
+        );
+    }
+
+        @Operation(
+        summary = "Autenticación con Facebook",
+        description = "Valida el User Access Token mediante Meta Graph API y devuelve un JWT de AgencyTrip."
+    )
+    @io.swagger.v3.oas.annotations.responses.ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Autenticación con Facebook realizada correctamente"),
+        @ApiResponse(responseCode = "400", description = "El token de Facebook no cumple las validaciones de identidad o correo"),
+        @ApiResponse(responseCode = "401", description = "Token de Facebook inválido o expirado"),
+        @ApiResponse(responseCode = "409", description = "Conflicto: el correo ya está registrado con una cuenta tradicional")
+    })
+    @PostMapping("/oauth/facebook")
+    public Map<String, Object> facebookLogin(
+            @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                    description = "Token de acceso generado por Facebook Login SDK.", required = true)
+            @Valid @RequestBody Requests.FacebookOAuthLogin r) {
+
+        var x = service.loginWithFacebook(r);
+
+        return Map.of(
+            "mensaje", "Inicio de sesión exitoso.",
+            "token", x.token(),
+            "usuario", ApiResponses.userAuth(x.user(), x.role())
+        );
+    }
+
+    @Operation(
         summary = "Consultar perfil autenticado",
         description = "Obtiene la información disponible en el token JWT del usuario autenticado.",
         security = @SecurityRequirement(name = "bearerAuth")

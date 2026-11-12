@@ -23,4 +23,39 @@ class UserUpdateTests {
         User updated = new UserService(repository, mock(PasswordHasherPort.class), mock(TokenPort.class)).update(1, new Requests.UserUpdate("Ana", "Pérez", "admin@test.co", 1));
         assertEquals("ADMINISTRADOR", updated.getRol().getNombre()); assertEquals("admin@test.co", updated.getCorreo());
     }
+
+    @Test void rejectsWhenUserNotFound() {
+        TravelRepositoryPort repository = mock(TravelRepositoryPort.class);
+        when(repository.findUserById(99)).thenReturn(Optional.empty());
+        org.junit.jupiter.api.Assertions.assertThrows(
+            BusinessException.class,
+            () -> new UserService(repository, mock(PasswordHasherPort.class), mock(TokenPort.class))
+                    .update(99, new Requests.UserUpdate("Ana", "Pérez", "admin@test.co", 1))
+        );
+    }
+
+    @Test void rejectsWhenEmailAlreadyExistsForAnotherUser() {
+        TravelRepositoryPort repository = mock(TravelRepositoryPort.class);
+        User user = new User();
+        when(repository.findUserById(1)).thenReturn(Optional.of(user));
+        when(repository.emailExists("duplicado@test.co", 1)).thenReturn(true);
+        org.junit.jupiter.api.Assertions.assertThrows(
+            BusinessException.class,
+            () -> new UserService(repository, mock(PasswordHasherPort.class), mock(TokenPort.class))
+                    .update(1, new Requests.UserUpdate("Ana", "Pérez", "duplicado@test.co", 1))
+        );
+    }
+
+    @Test void rejectsWhenRoleDoesNotExist() {
+        TravelRepositoryPort repository = mock(TravelRepositoryPort.class);
+        User user = new User();
+        when(repository.findUserById(1)).thenReturn(Optional.of(user));
+        when(repository.emailExists("admin@test.co", 1)).thenReturn(false);
+        when(repository.findRole(99)).thenReturn(Optional.empty());
+        org.junit.jupiter.api.Assertions.assertThrows(
+            BusinessException.class,
+            () -> new UserService(repository, mock(PasswordHasherPort.class), mock(TokenPort.class))
+                    .update(1, new Requests.UserUpdate("Ana", "Pérez", "admin@test.co", 99))
+        );
+    }
 }

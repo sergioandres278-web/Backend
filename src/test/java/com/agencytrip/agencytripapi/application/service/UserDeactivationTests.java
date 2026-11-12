@@ -21,4 +21,23 @@ class UserDeactivationTests {
         new UserService(repository, mock(PasswordHasherPort.class), mock(TokenPort.class)).disable(2);
         assertFalse(user.isEstado());
     }
+
+    @Test void rejectsWhenUserNotFound() {
+        TravelRepositoryPort repository = mock(TravelRepositoryPort.class);
+        when(repository.findUserById(99)).thenReturn(Optional.empty());
+        org.junit.jupiter.api.Assertions.assertThrows(
+            BusinessException.class,
+            () -> new UserService(repository, mock(PasswordHasherPort.class), mock(TokenPort.class)).disable(99)
+        );
+    }
+
+    @Test void rejectsWhenUserAlreadyDeactivated() {
+        TravelRepositoryPort repository = mock(TravelRepositoryPort.class);
+        User user = new User(); user.setEstado(false);
+        when(repository.findUserById(2)).thenReturn(Optional.of(user));
+        org.junit.jupiter.api.Assertions.assertThrows(
+            BusinessException.class,
+            () -> new UserService(repository, mock(PasswordHasherPort.class), mock(TokenPort.class)).disable(2)
+        );
+    }
 }

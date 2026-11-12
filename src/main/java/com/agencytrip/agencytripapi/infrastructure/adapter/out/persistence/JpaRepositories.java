@@ -19,6 +19,7 @@ import com.agencytrip.agencytripapi.infrastructure.adapter.out.persistence.entit
 import com.agencytrip.agencytripapi.infrastructure.adapter.out.persistence.entity.RoleEntity;
 import com.agencytrip.agencytripapi.infrastructure.adapter.out.persistence.entity.TransportEntity;
 import com.agencytrip.agencytripapi.infrastructure.adapter.out.persistence.entity.UserEntity;
+import com.agencytrip.agencytripapi.infrastructure.adapter.out.persistence.entity.SocialAccountEntity;
 
 interface UserJpaRepository extends JpaRepository<UserEntity, Integer> {
 
@@ -140,4 +141,10 @@ interface PaymentJpaRepository extends JpaRepository<PaymentEntity, Integer> {
     Optional<PaymentEntity> findById(Integer id);
 
     boolean existsByIdReservaAndEstado(Integer idReserva, String estado);
+}
+
+interface SocialAccountJpaRepository extends JpaRepository<SocialAccountEntity, Integer> {
+
+    @EntityGraph(attributePaths = {"usuario", "usuario.rol"})
+    Optional<SocialAccountEntity> findByProveedorAndIdProveedor(String proveedor, String idProveedor);
 }

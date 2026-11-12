@@ -21,4 +21,14 @@ class UserRegistrationTests {
         User user = new UserService(repository, hasher, mock(TokenPort.class)).register(new Requests.Register("Ana", "Pérez", "ana@test.co", "clave"));
         assertEquals("hash", user.getPassword()); assertEquals(2, user.getIdRol()); assertTrue(user.isEstado());
     }
+
+    @Test void rejectsWhenEmailAlreadyExists() {
+        TravelRepositoryPort repository = mock(TravelRepositoryPort.class);
+        when(repository.emailExists("ana@test.co", null)).thenReturn(true);
+        org.junit.jupiter.api.Assertions.assertThrows(
+            BusinessException.class,
+            () -> new UserService(repository, mock(PasswordHasherPort.class), mock(TokenPort.class))
+                    .register(new Requests.Register("Ana", "Pérez", "ana@test.co", "clave"))
+        );
+    }
 }

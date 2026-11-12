@@ -1,11 +1,18 @@
 package com.agencytrip.agencytripapi.application.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+
+import java.util.List;
+import java.util.Optional;
 
 import org.junit.jupiter.api.Test;
 
@@ -38,5 +45,217 @@ class CatalogServiceTests {
                 () -> service.createHotel(new Requests.Hotel("Hotel", "Calle 1", "Bogotá", 6, "Prueba")));
 
         assertEquals("La categoría debe estar entre 1 y 5.", exception.getMessage());
+    }
+
+    @Test
+    void rejectsHotelCategoryBelowOne() {
+        CatalogService service = new CatalogService(mock(TravelRepositoryPort.class));
+        BusinessException exception = assertThrows(BusinessException.class,
+                () -> service.createHotel(new Requests.Hotel("Hotel", "Calle 1", "Bogotá", 0, "Prueba")));
+        assertEquals("La categoría debe estar entre 1 y 5.", exception.getMessage());
+    }
+
+    @Test
+    void rejectsUpdatingNonExistentDestination() {
+        TravelRepositoryPort repo = mock(TravelRepositoryPort.class);
+        when(repo.findDestination(99)).thenReturn(Optional.empty());
+        CatalogService service = new CatalogService(repo);
+        assertThrows(BusinessException.class,
+                () -> service.updateDestination(99, new Requests.Destination("Cartagena", "Colombia", "Desc", "url")));
+    }
+
+    @Test
+    void rejectsDisablingNonExistentDestination() {
+        TravelRepositoryPort repo = mock(TravelRepositoryPort.class);
+        when(repo.findDestination(99)).thenReturn(Optional.empty());
+        CatalogService service = new CatalogService(repo);
+        assertThrows(BusinessException.class, () -> service.disableDestination(99));
+    }
+
+    @Test
+    void rejectsUpdatingDeactivatedHotel() {
+        TravelRepositoryPort repo = mock(TravelRepositoryPort.class);
+        com.agencytrip.agencytripapi.domain.model.Hotel h = new com.agencytrip.agencytripapi.domain.model.Hotel();
+        h.setEstado(false);
+        when(repo.findHotel(1)).thenReturn(Optional.of(h));
+        CatalogService service = new CatalogService(repo);
+        assertThrows(BusinessException.class,
+                () -> service.updateHotel(1, new Requests.Hotel("Hotel", "Calle 1", "Bogotá", 4, "Prueba")));
+    }
+
+    @Test
+    void rejectsDisablingAlreadyDeactivatedHotel() {
+        TravelRepositoryPort repo = mock(TravelRepositoryPort.class);
+        com.agencytrip.agencytripapi.domain.model.Hotel h = new com.agencytrip.agencytripapi.domain.model.Hotel();
+        h.setEstado(false);
+        when(repo.findHotel(1)).thenReturn(Optional.of(h));
+        CatalogService service = new CatalogService(repo);
+        assertThrows(BusinessException.class, () -> service.disableHotel(1));
+    }
+
+    @Test
+    void rejectsUpdatingDeactivatedTransport() {
+        TravelRepositoryPort repo = mock(TravelRepositoryPort.class);
+        com.agencytrip.agencytripapi.domain.model.Transport t = new com.agencytrip.agencytripapi.domain.model.Transport();
+        t.setEstado(false);
+        when(repo.findTransport(1)).thenReturn(Optional.of(t));
+        CatalogService service = new CatalogService(repo);
+        assertThrows(BusinessException.class,
+                () -> service.updateTransport(1, new Requests.Transport("Aéreo", "Avianca", "Vuelo")));
+    }
+
+    @Test
+    void rejectsDisablingAlreadyDeactivatedTransport() {
+        TravelRepositoryPort repo = mock(TravelRepositoryPort.class);
+        com.agencytrip.agencytripapi.domain.model.Transport t = new com.agencytrip.agencytripapi.domain.model.Transport();
+        t.setEstado(false);
+        when(repo.findTransport(1)).thenReturn(Optional.of(t));
+        CatalogService service = new CatalogService(repo);
+        assertThrows(BusinessException.class, () -> service.disableTransport(1));
+    }
+
+    @Test
+    void deactivatesAnActiveDestinationPreservingAllData() {
+        TravelRepositoryPort repo = mock(TravelRepositoryPort.class);
+        Destination d = new Destination();
+        d.setIdDestino(1);
+        d.setNombre("Cartagena");
+        d.setPais("Colombia");
+        d.setDescripcion("Ciudad colonial y turística");
+        d.setImagen("cartagena.jpg");
+        d.setEstado(true);
+
+        when(repo.findDestination(1)).thenReturn(Optional.of(d));
+        when(repo.saveDestination(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        CatalogService service = new CatalogService(repo);
+        Destination updated = service.changeDestinationStatus(1, false);
+
+        assertNotNull(updated);
+        assertEquals(1, updated.getIdDestino());
+        assertEquals("Cartagena", updated.getNombre());
+        assertEquals("Colombia", updated.getPais());
+        assertEquals("Ciudad colonial y turística", updated.getDescripcion());
+        assertEquals("cartagena.jpg", updated.getImagen());
+        assertFalse(updated.isEstado());
+        verify(repo).saveDestination(d);
+    }
+
+    @Test
+    void activatesAnInactiveDestinationPreservingAllData() {
+        TravelRepositoryPort repo = mock(TravelRepositoryPort.class);
+        Destination d = new Destination();
+        d.setIdDestino(1);
+        d.setNombre("Cartagena");
+        d.setPais("Colombia");
+        d.setDescripcion("Ciudad colonial y turística");
+        d.setImagen("cartagena.jpg");
+        d.setEstado(false);
+
+        when(repo.findDestination(1)).thenReturn(Optional.of(d));
+        when(repo.saveDestination(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        CatalogService service = new CatalogService(repo);
+        Destination updated = service.changeDestinationStatus(1, true);
+
+        assertNotNull(updated);
+        assertEquals(1, updated.getIdDestino());
+        assertEquals("Cartagena", updated.getNombre());
+        assertEquals("Colombia", updated.getPais());
+        assertEquals("Ciudad colonial y turística", updated.getDescripcion());
+        assertEquals("cartagena.jpg", updated.getImagen());
+        assertTrue(updated.isEstado());
+        verify(repo).saveDestination(d);
+    }
+
+    @Test
+    void togglesDestinationStatusMultipleTimesWithoutDuplicationOrDataLoss() {
+        TravelRepositoryPort repo = mock(TravelRepositoryPort.class);
+        Destination d = new Destination();
+        d.setIdDestino(1);
+        d.setNombre("Cartagena");
+        d.setPais("Colombia");
+        d.setDescripcion("Historia y mar");
+        d.setImagen("cartagena.jpg");
+        d.setEstado(true);
+
+        when(repo.findDestination(1)).thenReturn(Optional.of(d));
+        when(repo.saveDestination(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        CatalogService service = new CatalogService(repo);
+
+        // Ciclo 1: Desactivar
+        Destination des1 = service.changeDestinationStatus(1, false);
+        assertFalse(des1.isEstado());
+        assertEquals(1, des1.getIdDestino());
+
+        // Ciclo 2: Activar
+        Destination act1 = service.changeDestinationStatus(1, true);
+        assertTrue(act1.isEstado());
+        assertEquals(1, act1.getIdDestino());
+
+        // Ciclo 3: Desactivar nuevamente
+        Destination des2 = service.changeDestinationStatus(1, false);
+        assertFalse(des2.isEstado());
+        assertEquals(1, des2.getIdDestino());
+
+        // Ciclo 4: Activar nuevamente
+        Destination act2 = service.changeDestinationStatus(1, true);
+        assertTrue(act2.isEstado());
+        assertEquals(1, act2.getIdDestino());
+        assertEquals("Cartagena", act2.getNombre());
+
+        verify(repo, times(4)).saveDestination(d);
+    }
+
+    @Test
+    void rejectsChangingStatusOfNonExistentDestination() {
+        TravelRepositoryPort repo = mock(TravelRepositoryPort.class);
+        when(repo.findDestination(999)).thenReturn(Optional.empty());
+        CatalogService service = new CatalogService(repo);
+
+        assertThrows(BusinessException.class, () -> service.changeDestinationStatus(999, true));
+        assertThrows(BusinessException.class, () -> service.changeDestinationStatus(999, false));
+    }
+
+    @Test
+    void allDestinationsReturnsBothActiveAndInactive() {
+        TravelRepositoryPort repo = mock(TravelRepositoryPort.class);
+        Destination d1 = new Destination();
+        d1.setIdDestino(1);
+        d1.setNombre("Cartagena");
+        d1.setEstado(false); // Inactivo
+
+        Destination d2 = new Destination();
+        d2.setIdDestino(2);
+        d2.setNombre("Medellín");
+        d2.setEstado(true); // Activo
+
+        when(repo.findAllDestinations()).thenReturn(List.of(d1, d2));
+        CatalogService service = new CatalogService(repo);
+
+        List<Destination> result = service.allDestinations();
+        assertEquals(2, result.size());
+        assertEquals("Cartagena", result.get(0).getNombre());
+        assertFalse(result.get(0).isEstado());
+        assertEquals("Medellín", result.get(1).getNombre());
+        assertTrue(result.get(1).isEstado());
+    }
+
+    @Test
+    void destinationsReturnsOnlyActive() {
+        TravelRepositoryPort repo = mock(TravelRepositoryPort.class);
+        Destination d2 = new Destination();
+        d2.setIdDestino(2);
+        d2.setNombre("Medellín");
+        d2.setEstado(true);
+
+        when(repo.findActiveDestinations()).thenReturn(List.of(d2));
+        CatalogService service = new CatalogService(repo);
+
+        List<Destination> result = service.destinations();
+        assertEquals(1, result.size());
+        assertEquals("Medellín", result.get(0).getNombre());
+        assertTrue(result.get(0).isEstado());
     }
 }
