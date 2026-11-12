@@ -12,4 +12,6 @@ public interface TravelRepositoryPort {
     List<PackageTrip> findActivePackages(); Optional<PackageTrip> findPackage(int id); default Optional<PackageTrip> findPackageForUpdate(int id) { return findPackage(id); } PackageTrip savePackage(PackageTrip trip);
     List<Reservation> findReservations(); List<Reservation> findReservationsByUser(int userId); Optional<Reservation> findReservation(int id); default Optional<Reservation> findReservationForUpdate(int id) { return findReservation(id); } Reservation saveReservation(Reservation reservation);
     List<Payment> findPayments(); List<Payment> findPaymentsByUser(int userId); Optional<Payment> findPayment(int id); boolean hasApprovedPayment(int reservationId); Payment savePayment(Payment payment);
+    default Optional<SocialAccount> findSocialAccount(String proveedor, String idProveedor) { return Optional.empty(); }
+    default SocialAccount saveSocialAccount(SocialAccount socialAccount) { return socialAccount; }
 }

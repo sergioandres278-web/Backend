@@ -120,6 +120,7 @@ public class SecurityConfig {
                                 HttpMethod.POST,
                                 "/api/Usuarios/registro",
                                 "/api/Usuarios/login",
+                                "/api/Usuarios/oauth/**",
                                 "/api/Registro"
                         ).permitAll()
 

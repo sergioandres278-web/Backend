@@ -89,6 +89,20 @@ CREATE TABLE IF NOT EXISTS `usuarios` (
   CONSTRAINT `fk_usuario_rol` FOREIGN KEY (`id_rol`) REFERENCES `roles` (`id_rol`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
+-- 6.1. Tabla: cuentas_sociales
+CREATE TABLE IF NOT EXISTS `cuentas_sociales` (
+  `id_cuenta_social` int NOT NULL AUTO_INCREMENT,
+  `id_usuario` int NOT NULL,
+  `proveedor` varchar(20) NOT NULL,
+  `id_proveedor` varchar(100) NOT NULL,
+  `correo_proveedor` varchar(150) NOT NULL,
+  `fecha_vinculacion` datetime DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id_cuenta_social`),
+  UNIQUE KEY `uk_proveedor_id` (`proveedor`, `id_proveedor`),
+  KEY `fk_social_usuario` (`id_usuario`),
+  CONSTRAINT `fk_social_usuario` FOREIGN KEY (`id_usuario`) REFERENCES `usuarios` (`id_usuario`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
 -- 7. Tabla: reservas
 CREATE TABLE IF NOT EXISTS `reservas` (
   `id_reserva` int NOT NULL AUTO_INCREMENT,
