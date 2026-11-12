@@ -25,3 +25,6 @@ application-local.yml
 node_modules/
 .DS_Store
 Thumbs.db
+
+# Local backups and temporary migration artifacts
+backups*/
