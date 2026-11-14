@@ -6,10 +6,12 @@ import java.util.*;
 /** Puerto de salida: la aplicación no conoce JPA ni MySQL. */
 public interface TravelRepositoryPort {
     Optional<User> findUserByEmail(String email); Optional<User> findUserById(int id); boolean emailExists(String email, Integer excludedId); List<User> findActiveUsers(); User saveUser(User user); Optional<Role> findRole(int id); List<Role> findRoles();
-    List<Destination> findActiveDestinations(); Optional<Destination> findDestination(int id); Destination saveDestination(Destination destination);
+    List<Destination> findActiveDestinations(); default List<Destination> findAllDestinations() { return findActiveDestinations(); } Optional<Destination> findDestination(int id); Destination saveDestination(Destination destination);
     List<Hotel> findActiveHotels(); Optional<Hotel> findHotel(int id); Hotel saveHotel(Hotel hotel);
     List<Transport> findActiveTransports(); Optional<Transport> findTransport(int id); Transport saveTransport(Transport transport);
-    List<PackageTrip> findActivePackages(); Optional<PackageTrip> findPackage(int id); PackageTrip savePackage(PackageTrip trip);
-    List<Reservation> findReservations(); List<Reservation> findReservationsByUser(int userId); Optional<Reservation> findReservation(int id); Reservation saveReservation(Reservation reservation);
+    List<PackageTrip> findActivePackages(); Optional<PackageTrip> findPackage(int id); default Optional<PackageTrip> findPackageForUpdate(int id) { return findPackage(id); } PackageTrip savePackage(PackageTrip trip);
+    List<Reservation> findReservations(); List<Reservation> findReservationsByUser(int userId); Optional<Reservation> findReservation(int id); default Optional<Reservation> findReservationForUpdate(int id) { return findReservation(id); } Reservation saveReservation(Reservation reservation);
     List<Payment> findPayments(); List<Payment> findPaymentsByUser(int userId); Optional<Payment> findPayment(int id); boolean hasApprovedPayment(int reservationId); Payment savePayment(Payment payment);
+    default Optional<SocialAccount> findSocialAccount(String proveedor, String idProveedor) { return Optional.empty(); }
+    default SocialAccount saveSocialAccount(SocialAccount socialAccount) { return socialAccount; }
 }

@@ -10,9 +10,11 @@ public class CatalogService {
     private final TravelRepositoryPort repo;
     public CatalogService(TravelRepositoryPort repo) { this.repo=repo; }
     public List<Destination> destinations(){ return repo.findActiveDestinations(); }
+    public List<Destination> allDestinations(){ return repo.findAllDestinations(); }
     public Destination createDestination(Requests.Destination r){ Destination d=new Destination(); d.setNombre(r.nombre()); d.setPais(r.pais()); d.setDescripcion(r.descripcion()); d.setImagen(r.imagen()); d.setEstado(true); return repo.saveDestination(d); }
     public Destination updateDestination(int id, Requests.Destination r){ Destination d=repo.findDestination(id).orElseThrow(()->notFound("El destino no existe.")); d.setNombre(r.nombre());d.setPais(r.pais());d.setDescripcion(r.descripcion());d.setImagen(r.imagen());return repo.saveDestination(d); }
-    public void disableDestination(int id){ Destination d=repo.findDestination(id).orElseThrow(()->notFound("El destino no existe.")); d.setEstado(false);repo.saveDestination(d); }
+    public Destination changeDestinationStatus(int id, boolean nuevoEstado){ Destination d=repo.findDestination(id).orElseThrow(()->notFound("El destino no existe.")); d.setEstado(nuevoEstado); return repo.saveDestination(d); }
+    public void disableDestination(int id){ changeDestinationStatus(id, false); }
     public List<Hotel> hotels(){return repo.findActiveHotels();}
     public Hotel createHotel(Requests.Hotel r){ validateCategory(r.categoria()); Hotel h=new Hotel(); apply(h,r);h.setEstado(true);return repo.saveHotel(h); }
     public Hotel updateHotel(int id, Requests.Hotel r){ Hotel h=repo.findHotel(id).orElseThrow(()->notFound("El hotel no existe."));if(!h.isEstado()) throw bad("El hotel está desactivado.");validateCategory(r.categoria());apply(h,r);return repo.saveHotel(h); }

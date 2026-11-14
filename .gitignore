@@ -11,11 +11,20 @@ target/
 # Local environment and secrets
 .env
 .env.*
+*.env
 !.env.example
 application-local.properties
 application-local.yml
+*.pem
+*.key
+*.p12
+*.pfx
+*.keystore
 
 # Tooling and operating-system files
 node_modules/
 .DS_Store
 Thumbs.db
+
+# Local backups and temporary migration artifacts
+backups*/
