@@ -63,6 +63,10 @@ Los perfiles públicos están en `src/main/resources/environments/`. Active `dev
 
 [Backend CI](.github/workflows/backend-ci.yml) se ejecuta en `DEV`, `PRE`, `PROD` y `main`: configura Java 21 y MySQL efímero, ejecuta pruebas Maven, genera el JAR y publica reportes Surefire y JaCoCo. SonarQube es opcional y solo se activa con secretos configurados en GitHub.
 
+## Promoción entre ambientes
+
+Los cambios se promueven únicamente mediante el flujo `DEV` → `PRE` → `PROD`, con revisión humana y validaciones previas en cada etapa. La rama `PROD` prepara una versión candidata; este repositorio no ejecuta despliegues automáticos ni modifica infraestructura desde GitHub Actions.
+
 Las ramas se mantienen separadas; el workflow no promueve ambientes ni despliega infraestructura.
 
 ## Arquitectura del sistema
