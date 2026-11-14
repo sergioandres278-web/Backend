@@ -65,6 +65,10 @@ Los perfiles públicos están en `src/main/resources/environments/`. Active `dev
 
 Las ramas se mantienen separadas; el workflow no promueve ambientes ni despliega infraestructura.
 
+## Arquitectura del sistema
+
+El diagrama de integración entre Frontend, Nginx, Backend, Chatbot y MySQL está disponible en el repositorio de Frontend: [arquitectura general de AgencyTrip CO](https://github.com/sergioandres278-web/Frontend/blob/DEV/docs/architecture.md).
+
 ## Seguridad
 
 `.gitignore` excluye `.env`, certificados, claves privadas, almacenes de claves y respaldos locales. No publique contraseñas, tokens OAuth, secretos JWT ni cadenas de conexión reales.
