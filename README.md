@@ -1,104 +1,74 @@
 # AgencyTrip CO — Backend
 
-Backend definitivo de AgencyTrip CO. Expone una API REST para usuarios, roles, destinos, paquetes, hoteles, transportes, reservas, pagos y el panel administrativo.
+[![Backend CI](https://github.com/sergioandres278-web/Backend/actions/workflows/backend-ci.yml/badge.svg?branch=DEV)](https://github.com/sergioandres278-web/Backend/actions/workflows/backend-ci.yml)
 
-## Tecnologías
+API REST principal del Sistema Integral de Gestión y Planificación de Servicios Turísticos **AgencyTrip CO**. Gestiona usuarios, autenticación, catálogos, paquetes, reservas, pagos y operaciones administrativas.
 
-- Java 21
-- Spring Boot 4.0.8
-- Maven
-- Spring Web MVC, Data JPA, Validation y Security
-- JWT como OAuth2 Resource Server
-- MySQL 8
+## Componentes relacionados
 
-## Arquitectura
+- [Frontend Angular](https://github.com/sergioandres278-web/Frontend): interfaz web consumidora de la API.
+- [Chatbot API](https://github.com/sergioandres278-web/Chatbot): asistente independiente integrado desde el frontend.
 
-El proyecto usa arquitectura hexagonal. La lógica de negocio se mantiene fuera de los controladores y del adaptador de persistencia.
+## Tecnologías y arquitectura
+
+- Java 21, Spring Boot 4.0.8 y Maven Wrapper.
+- Spring Web MVC, Validation, Data JPA, MySQL 8 y Actuator.
+- Spring Security, JWT, OAuth2 Resource Server y SpringDoc OpenAPI.
+- JUnit, Spring Test y JaCoCo.
+
+El proyecto mantiene separación de estilo hexagonal:
 
 ```text
-Angular
-   ↓
-REST API
-   ↓
-Application
-   ↓
-Domain
-   ↓
-Ports
-   ↓
-Persistence Adapter
-   ↓
-MySQL
+infrastructure/adapter/in/web  -> Controllers REST
+application/                   -> Casos de uso y DTOs
+domain/                        -> Modelo y puertos
+infrastructure/adapter/out/    -> Persistencia y configuración
 ```
 
-Estructura principal:
+## API y seguridad
+
+- Swagger UI: `http://localhost:8080/swagger-ui/index.html`
+- OpenAPI JSON: `http://localhost:8080/v3/api-docs`
+
+Rutas principales: `Registro`, `Usuarios`, `Destinos`, `Hoteles`, `Transportes`, `Paquetes`, `Reservas`, `Pagos`, `Roles` y `Admin`, bajo el prefijo `/api`. Las operaciones protegidas requieren JWT; las administrativas requieren el rol `ADMINISTRADOR`.
+
+## Requisitos y configuración
+
+- JDK 21 y MySQL 8.
+- Base local `agencia_viajes`.
+
+Use `.env.example` solo como referencia. Nunca publique un `.env` real.
 
 ```text
-src/main/java/com/agencytrip/agencytripapi/
-├── domain/                 # Modelos y puertos de salida
-├── application/            # Casos de uso, DTO y puertos
-└── infrastructure/         # Adaptadores web, persistencia y configuración
-```
-
-## Requisitos
-
-- JDK 21
-- MySQL 8 con la base de datos existente `agencia_viajes`
-- Variables de entorno configuradas
-
-## Variables de entorno
-
-No almacenes credenciales, secretos JWT ni tokens en Git. Usa `.env.example` únicamente como referencia de nombres.
-
-```text
-DB_URL=
-DB_USERNAME=
-DB_PASSWORD=
-JWT_SECRET=
+DB_URL=jdbc:mysql://localhost:3306/agencia_viajes
+DB_USERNAME=<usuario-local>
+DB_PASSWORD=<secreto-local>
+JWT_SECRET=<secreto-JWT-seguro>
+JWT_ISSUER=AgencyTripAPI
+JWT_AUDIENCE=AgencyTripAngular
 PORT=8080
 ```
 
-La aplicación usa `DB_URL`, `DB_USERNAME`, `DB_PASSWORD` y `JWT_SECRET`. El puerto predeterminado es `8080` y puede ajustarse con `PORT`.
+Los perfiles públicos están en `src/main/resources/environments/`. Active `dev`, `pre` o `prod` con `SPRING_PROFILES_ACTIVE`.
 
-## Ambientes
-
-La configuración pública se encuentra en:
-
-- `application.properties`
-- `application-dev.properties`
-- `application-pre.properties`
-- `application-prod.properties`
-
-Activa un perfil con `SPRING_PROFILES_ACTIVE`, por ejemplo `dev`, `pre` o `prod`. Las credenciales se siguen tomando exclusivamente del entorno.
-
-## Ejecutar
-
-En PowerShell, desde la raíz del proyecto:
+## Ejecución, pruebas y build
 
 ```powershell
 .\mvnw.cmd spring-boot:run
-```
-
-La API queda disponible en `http://localhost:8080` de forma predeterminada.
-
-## Pruebas y compilación
-
-```powershell
+.\mvnw.cmd clean test
 .\mvnw.cmd clean package
 ```
 
-## Endpoints principales
+## GitHub Actions y ambientes
 
-- `POST /api/Registro`
-- `POST /api/Usuarios/login`
-- `GET /api/Usuarios/perfil`
-- `GET /api/Destinos`
-- `GET /api/Paquetes`
-- `GET /api/Hoteles`
-- `GET /api/Transportes`
-- `GET` y `POST /api/Reservas`
-- `GET` y `POST /api/Pagos`
-- `GET /api/Roles`
-- `GET /api/Admin/panel`
+[Backend CI](.github/workflows/backend-ci.yml) se ejecuta en `DEV`, `PRE`, `PROD` y `main`: configura Java 21 y MySQL efímero, ejecuta pruebas Maven, genera el JAR y publica reportes Surefire y JaCoCo. SonarQube es opcional y solo se activa con secretos configurados en GitHub.
 
-Los endpoints administrativos y las operaciones autenticadas requieren un JWT válido con el rol correspondiente. CORS está configurado para el frontend Angular local en `http://localhost:4200`.
+Las ramas se mantienen separadas; el workflow no promueve ambientes ni despliega infraestructura.
+
+## Arquitectura del sistema
+
+El diagrama de integración entre Frontend, Nginx, Backend, Chatbot y MySQL está disponible en el repositorio de Frontend: [arquitectura general de AgencyTrip CO](https://github.com/sergioandres278-web/Frontend/blob/DEV/docs/architecture.md).
+
+## Seguridad
+
+`.gitignore` excluye `.env`, certificados, claves privadas, almacenes de claves y respaldos locales. No publique contraseñas, tokens OAuth, secretos JWT ni cadenas de conexión reales.
